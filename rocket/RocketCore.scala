@@ -250,6 +250,11 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   val take_pc_mem_wb = take_pc_wb || take_pc_mem
   val take_pc = take_pc_mem_wb
 
+  //===== GuardianCouncil Function: Start ====//
+   io.pc := wb_reg_pc
+   io.inst := wb_reg_inst
+  //===== GuardianCouncil Function: End   ====//
+
   // decode stage
   val ibuf = Module(new IBuf)
   val id_expanded_inst = ibuf.io.inst.map(_.bits.inst)

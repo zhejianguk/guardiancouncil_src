@@ -11,6 +11,11 @@ import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket._
 import freechips.rocketchip.tile._
 import freechips.rocketchip.util._
+//==========================================//
+//===== GuardianCouncil Function: Start ====//
+import freechips.rocketchip.guardiancouncil._
+//===== GuardianCouncil Function: End ======//
+//==========================================//
 
 class BaseSubsystemConfig extends Config ((site, here, up) => {
   // Tile parameters
@@ -38,6 +43,11 @@ class BaseSubsystemConfig extends Config ((site, here, up) => {
     blockBytes = site(CacheBlockBytes))
   // Additional device Parameters
   case BootROMLocated(InSubsystem) => Some(BootROMParams(contentFileName = "./bootrom/bootrom.img"))
+  //==========================================//
+  //===== GuardianCouncil Function: Start ====//
+  case GHMCoreLocated(InSubsystem) => Some(GHMParams((site(TilesLocated(InSubsystem)).map(_.tileParams.hartId).max+1), site(XLen)*3+10, site(XLen)))
+  //===== GuardianCouncil Function: End ======//
+  //==========================================//
   case SubsystemExternalResetVectorKey => false
   case DebugModuleKey => Some(DefaultDebugModuleParams(site(XLen)))
   case CLINTKey => Some(CLINTParams())

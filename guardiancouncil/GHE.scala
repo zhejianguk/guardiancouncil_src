@@ -73,11 +73,11 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                     Array(doCheck -> Cat(zeros, channel_status_wire), 
                                           doPull  -> channel_deq_data))
     
-    cmd.ready := true.B // Currently, it is always ready, because it is never block
+    cmd.ready                  := true.B // Currently, it is always ready, because it is never block
     
-    io.resp.valid := cmd.valid && xd
-    io.resp.bits.rd := cmd.bits.inst.rd
-    io.resp.bits.data := rd_val
-    io.busy := cmd.valid // Later add more situations
-    io.interrupt := false.B
+    io.resp.valid              := cmd.valid && xd
+    io.resp.bits.rd            := cmd.bits.inst.rd
+    io.resp.bits.data          := rd_val
+    io.busy                    := cmd.valid // Later add more situations
+    io.interrupt               := false.B
 }

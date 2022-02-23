@@ -14,6 +14,9 @@ import freechips.rocketchip.rocket._
 import freechips.rocketchip.subsystem.TileCrossingParamsLike
 import freechips.rocketchip.util._
 import freechips.rocketchip.prci.{ClockSinkParameters}
+//===== GuardianCouncil Function: Start ====//
+import freechips.rocketchip.guardiancouncil._
+//===== GuardianCouncil Function: End   ====//
 
 
 case class RocketTileParams(
@@ -138,6 +141,16 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   Annotated.params(this, outer.rocketParams)
 
   val core = Module(new Rocket(outer)(outer.p))
+
+  //===== GuardianCouncil Function: Start ====//
+   val ght = Module(new GHT(GHTParams(vaddrBitsExtended)))
+   ght.io.ght_pcaddr_in := core.io.pc
+   ght.io.resetvector_in := outer.resetVectorSinkNode.bundle
+   ght.io.ght_inst_in := core.io.inst
+   val akira_type  = ght.io.ght_inst_type
+   //===== GuardianCouncil Function: End ====//
+
+
 
   // Report unrecoverable error conditions; for now the only cause is cache ECC errors
   outer.reportHalt(List(outer.dcache.module.io.errors))

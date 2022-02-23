@@ -151,5 +151,9 @@ trait HasCoreIO extends HasTileParameters {
     val cease = Bool().asOutput
     val wfi = Bool().asOutput
     val traceStall = Bool().asInput
+    //===== GuardianCouncil Function: Start ====//
+    val pc = UInt(vaddrBitsExtended.W).asOutput
+    val inst = UInt(32.W).asOutput
+    //===== GuardianCouncil Function: End ====//
   }
 }
