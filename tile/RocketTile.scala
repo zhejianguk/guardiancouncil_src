@@ -143,11 +143,19 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   val core = Module(new Rocket(outer)(outer.p))
 
   //===== GuardianCouncil Function: Start ====//
-   val ght = Module(new GHT(GHTParams(vaddrBitsExtended)))
-   ght.io.ght_pcaddr_in := core.io.pc
-   ght.io.resetvector_in := outer.resetVectorSinkNode.bundle
-   ght.io.ght_inst_in := core.io.inst
-   val akira_type  = ght.io.ght_inst_type
+  if (outer.tileParams.hartId == 0) {
+    println("#### Jessica #### Generating GHT for the big core, HartID: ", outer.rocketParams.hartId, "...!!!")
+    val ght = Module(new GHT(GHTParams(vaddrBitsExtended)))
+    ght.io.ght_pcaddr_in := core.io.pc
+    ght.io.resetvector_in := outer.resetVectorSinkNode.bundle
+    ght.io.ght_inst_in := core.io.inst
+    val akira = ght.io.ght_inst_type
+    outer.ght_packet_out_SRNode.bundle := ght.io.ght_packet_out
+  } else
+  {
+    // For other cores: no GHT is required, and hence tied-off.
+    outer.ght_packet_out_SRNode.bundle := 0.U
+  }
    //===== GuardianCouncil Function: End ====//
 
 

@@ -21,6 +21,7 @@ class GHT_DC_IO () extends Bundle {
   val ght_dc_inst_in = Input(UInt(32.W))
   val ght_dc_newcommit_in = Input(Bool())
   val ght_dc_inst_type = Output(UInt(4.W))
+  val ght_dc_inst_func_opcode = Output(UInt(10.W))
 }
 
 trait HasGHT_DC_IO extends BaseModule {
@@ -70,5 +71,6 @@ class GHT_DC () extends Module with HasGHT_DC_IO
                                      int_type_y, 
                                      int_type_x, 
                                      inst_type_load)
+  io.ght_dc_inst_func_opcode  := inst_filtered_wire
 
 }

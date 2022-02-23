@@ -221,6 +221,13 @@ trait HasTileNotificationSinks { this: LazyModule =>
   tileCeaseSinkNode := tileCeaseXbarNode
 }
 
+//===== GuardianCouncil Function: Start ====//
+trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
+  val tile_ght_packet_out_EPNode = BundleBridgeEphemeralNode[UInt]()
+  val tile_ght_packet_in_EPNode = BundleBridgeEphemeralNode[UInt]()
+}
+//===== GuardianCouncil Function: End ======//
+
 /** Most tile types require only these traits in order for their standardized connect functions to apply.
   *
   *    BaseTiles subtypes with different needs can extend this trait to provide themselves with
@@ -231,6 +238,7 @@ trait DefaultTileContextType
   with HasTileInterruptSources
   with HasTileNotificationSinks
   with HasTileInputConstants
+  with HasGHnodes
 { this: BaseSubsystem => } // TODO: ideally this bound would be softened to LazyModule
 
 /** Standardized interface by which parameterized tiles can be attached to contexts containing interconnect resources.
@@ -264,6 +272,9 @@ trait CanAttachTile {
     connectOutputNotifications(domain, context)
     connectInputConstants(domain, context)
     LogicalModuleTree.add(context.logicalTreeNode, domain.tile.logicalTreeNode)
+    //===== GuardianCouncil Function: Start ====//
+    connectGHSingals(domain, context)
+    //===== GuardianCouncil Function: End   ====//
   }
 
   /** Connect the port where the tile is the master to a TileLink interconnect. */
@@ -374,6 +385,21 @@ trait CanAttachTile {
       domain.tile_reset_domain.clockNode := crossingParams.resetCrossingType.injectClockNode := domain.clockNode
     } := clockSource
   }
+
+  //===== GuardianCouncil Function: Start ====//
+  def connectGHSingals(domain: TilePRCIDomain[TileType], context: TileContextType): Unit = {
+    implicit val p = context.p
+
+    if (tileParams.hartId == 0) {
+      context.tile_ght_packet_out_EPNode := domain.tile.ght_packet_out_SRNode
+      domain.tile.ght_packet_in_SKode := context.tile_ght_packet_in_EPNode
+      println("#### Jessica #### Connecting GHT **Nodes** on the tile, HartID:", tileParams.hartId, "...!!")
+    } else {
+      domain.tile.ght_packet_in_SKode := domain.tile.ght_packet_out_SRNode
+      println("#### Jessica #### Tieing off GHT **Nodes** on the tile, HartID:", tileParams.hartId,"...!!")
+    }
+  }
+  //===== GuardianCouncil Function: End ======//
 }
 
 /** InstantiatesTiles adds a Config-urable sequence of tiles of any type
@@ -414,7 +440,7 @@ trait HasTiles extends InstantiatesTiles with HasCoreMonitorBundles with Default
 
 /** Provides some Chisel connectivity to certain tile IOs */
 trait HasTilesModuleImp extends LazyModuleImp with HasPeripheryDebugModuleImp {
-  val outer: HasTiles with HasTileInterruptSources with HasTileInputConstants
+  val outer: HasTiles with HasTileInterruptSources with HasTileInputConstants with HasGHnodes
 
   val reset_vector = outer.tileResetVectorIONodes.zipWithIndex.map { case (n, i) => n.makeIO(s"reset_vector_$i") }
   val tile_hartids = outer.tileHartIdIONodes.zipWithIndex.map { case (n, i) => n.makeIO(s"tile_hartids_$i") }

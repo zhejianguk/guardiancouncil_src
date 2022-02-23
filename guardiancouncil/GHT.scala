@@ -2,6 +2,7 @@ package freechips.rocketchip.guardiancouncil
 
 
 import chisel3._
+import chisel3.util._
 import chisel3.experimental.{BaseModule}
 import chisel3.stage.ChiselStage
 
@@ -26,6 +27,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_pcaddr_in = Input(UInt(params.width_core_pc.W))
   val ght_inst_in = Input(UInt(32.W))
   val ght_inst_type = Output(UInt(4.W))
+  val ght_packet_out = Output(UInt(74.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -45,4 +47,6 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   u_ght_dc.io.ght_dc_inst_in   := this.io.ght_inst_in
   u_ght_dc.io.ght_dc_newcommit_in := u_ght_cc.io.ght_cc_newcommit_out
   this.io.ght_inst_type        := u_ght_dc.io.ght_dc_inst_type
+  val zeros                     = WireInit(0.U(64.W))
+  this.io.ght_packet_out       := Cat(u_ght_dc.io.ght_dc_inst_func_opcode, zeros)
 }

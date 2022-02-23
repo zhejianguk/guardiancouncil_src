@@ -68,10 +68,17 @@ object GHMCore {
   def attach(params: GHMParams, subsystem: BaseSubsystem with HasTiles)
             (implicit p: Parameters) {
 
+    // Creating nodes for connections.
+    val ghm_packet_in_SKNode     = BundleBridgeSink[UInt](Some(() => UInt(74.W)))
+    val ghm_packet_out_SRNode    = BundleBridgeSource[UInt](Some(() => UInt(74.W)))
+
+    ghm_packet_in_SKNode        := subsystem.tile_ght_packet_out_EPNode
+    subsystem.tile_ght_packet_in_EPNode := ghm_packet_out_SRNode
 
     InModuleBody {
       val ghm = Module (new GHM (GHMParams (params.number_of_rockets, params.width_GH_packet, params.xlen)))
-      ghm.io.ghm_packet_in     := 0.U
+      ghm.io.ghm_packet_in      := ghm_packet_in_SKNode.bundle
+      ghm_packet_out_SRNode.bundle := 0.U // Tie-off, as it is not used at this monent
     }
   }
 }
