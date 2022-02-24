@@ -153,7 +153,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     outer.ght_packet_out_SRNode.bundle := ght.io.ght_packet_out
   } else
   {
-    // For other cores: no GHT is required, and hence tied-off.
+    // For other cores: no GHT is required, and hence tied-off
     outer.ght_packet_out_SRNode.bundle := 0.U
   }
    //===== GuardianCouncil Function: End ====//
@@ -203,6 +203,9 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     core.io.rocc.resp <> respArb.get.io.out
     core.io.rocc.busy <> (cmdRouter.get.io.busy || outer.roccs.map(_.module.io.busy).reduce(_ || _))
     core.io.rocc.interrupt := outer.roccs.map(_.module.io.interrupt).reduce(_ || _)
+    //===== GuardianCouncil Function: Start ====//
+    cmdRouter.get.io.ghe_packet_in := outer.ghe_packet_in_SKode.bundle
+    //===== GuardianCouncil Function: End   ====//
   }
 
   // Rocket has higher priority to DTIM than other TileLink clients

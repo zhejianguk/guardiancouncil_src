@@ -13,12 +13,6 @@ case class GHM_SCH_Params (
   number_of_little_cores: Int,
 )
 
-// *Driver is used for verilog generation
-object GHT_SCH_Driver extends App {
-  val p = new GHM_SCH_Params (3)
-  (new ChiselStage).emitVerilog(new GHM_SCH(p), args)
-}
-
 //==========================================================
 // I/Os
 //==========================================================

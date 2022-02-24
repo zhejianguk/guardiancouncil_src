@@ -45,7 +45,9 @@ class BaseSubsystemConfig extends Config ((site, here, up) => {
   case BootROMLocated(InSubsystem) => Some(BootROMParams(contentFileName = "./bootrom/bootrom.img"))
   //==========================================//
   //===== GuardianCouncil Function: Start ====//
-  case GHMCoreLocated(InSubsystem) => Some(GHMParams((site(TilesLocated(InSubsystem)).map(_.tileParams.hartId).max+1), site(XLen)*3+10, site(XLen)))
+  // ((site(TilesLocated(InSubsystem)).map(_.tileParams.hartId).max+1) gives the number of tiles
+  // -1 (big core) indicates the number of little cores
+  case GHMCoreLocated(InSubsystem) => Some(GHMParams(((site(TilesLocated(InSubsystem)).map(_.tileParams.hartId).max+1)-1), site(XLen)+10, site(XLen)))
   //===== GuardianCouncil Function: End ======//
   //==========================================//
   case SubsystemExternalResetVectorKey => false

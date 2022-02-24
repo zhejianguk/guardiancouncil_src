@@ -12,12 +12,6 @@ case class GHT_CC_Params (
   width_core_pc: Int
 )
 
-// *Driver is used for verilog generation
-object GHT_CC_Driver extends App {
-  val p = new GHT_CC_Params (40)
-  (new ChiselStage).emitVerilog(new GHT_CC(p), args)
-}
-
 //==========================================================
 // I/Os
 //==========================================================

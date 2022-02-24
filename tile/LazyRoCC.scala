@@ -45,6 +45,9 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val busy = Output(Bool())
   val interrupt = Output(Bool())
   val exception = Input(Bool())
+  //===== GuardianCouncil Function: Start ====//
+  val ghe_packet_in = Input(UInt(74.W)) 
+  //===== GuardianCouncil Function: End   ====//
 }
 
 class RoCCIO(val nPTWPorts: Int)(implicit p: Parameters) extends RoCCCoreIO()(p) {
@@ -93,6 +96,9 @@ trait HasLazyRoCCModule extends CanHavePTWModule
       dcIF.io.requestor <> rocc.module.io.mem
       dcachePorts += dcIF.io.cache
       respArb.io.in(i) <> Queue(rocc.module.io.resp)
+      //===== GuardianCouncil Function: Start ====//
+      rocc.module.io.ghe_packet_in := cmdRouter.io.ghe_packet_in
+      //===== GuardianCouncil Function: End   ====//
     }
 
     fpuOpt foreach { fpu =>
@@ -401,6 +407,9 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val in = Flipped(Decoupled(new RoCCCommand))
     val out = Vec(opcodes.size, Decoupled(new RoCCCommand))
     val busy = Output(Bool())
+    //===== GuardianCouncil Function: Start ====//
+    val ghe_packet_in = Input(UInt(74.W))
+    //===== GuardianCouncil Function: End   ====//
   }
 
   val cmd = Queue(io.in)

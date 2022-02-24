@@ -5,15 +5,6 @@ import chisel3.util._
 import chisel3.experimental.{BaseModule}
 import chisel3.stage.ChiselStage
 
-
-//==========================================================
-// Parameters
-//==========================================================
-// *Driver is used for verilog generation
-object GHT_DC_Driver extends App {
-  (new ChiselStage).emitVerilog(new GHT_DC(), args)
-}
-
 //==========================================================
 // I/Os
 //==========================================================

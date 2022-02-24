@@ -25,11 +25,6 @@ trait HasFIFOIO extends BaseModule {
   val io = IO(new FIFOIO(params))
 }
 
-object Reg_Fifo extends App {
-  val p = new FIFOParams (64, 8)
-  (new ChiselStage).emitVerilog(new GH_FIFO(p), args)
-}
-
 class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
 
   def counter(depth: Int, incr: Bool): (UInt, UInt) = {

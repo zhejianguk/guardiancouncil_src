@@ -225,6 +225,8 @@ trait HasTileNotificationSinks { this: LazyModule =>
 trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
   val tile_ght_packet_out_EPNode = BundleBridgeEphemeralNode[UInt]()
   val tile_ght_packet_in_EPNode = BundleBridgeEphemeralNode[UInt]()
+
+  var tile_ghe_packet_in_EPNodes = Seq[BundleBridgeEphemeralNode[UInt]]()
 }
 //===== GuardianCouncil Function: End ======//
 
@@ -393,11 +395,16 @@ trait CanAttachTile {
     if (tileParams.hartId == 0) {
       context.tile_ght_packet_out_EPNode := domain.tile.ght_packet_out_SRNode
       domain.tile.ght_packet_in_SKode := context.tile_ght_packet_in_EPNode
-      println("#### Jessica #### Connecting GHT **Nodes** on the tile, HartID:", tileParams.hartId, "...!!")
+      println("#### Jessica #### Connecting GHT **Nodes** on the sub-system, HartID:", tileParams.hartId, "...!!")
     } else {
       domain.tile.ght_packet_in_SKode := domain.tile.ght_packet_out_SRNode
-      println("#### Jessica #### Tieing off GHT **Nodes** on the tile, HartID:", tileParams.hartId,"...!!")
+      println("#### Jessica #### Tieing off GHT **Nodes** on the sub-system, HartID:", tileParams.hartId,"...!!")
     }
+
+    val tile_ghe_packet_in_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_ghe_packet_in_EPNodes = context.tile_ghe_packet_in_EPNodes :+ tile_ghe_packet_in_EPNode
+    domain.tile.ghe_packet_in_SKode := tile_ghe_packet_in_EPNode
+    println("#### Jessica #### Connecting GHE **Nodes** on the sub-system, HartID:", tileParams.hartId, "...!!")
   }
   //===== GuardianCouncil Function: End ======//
 }
