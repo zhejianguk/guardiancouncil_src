@@ -49,13 +49,18 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     channel_empty              := u_channel.io.empty
     channel_full               := u_channel.io.full
 
+    // Software Funcs
     val doCheck                 = (cmd.fire() && (funct === 0.U))
-    val doPull                  = (cmd.fire() && (funct === 2.U) && !channel_empty) 
-    val doPull_SecondHalf       = (cmd.fire() && (funct === 3.U))
+    val doTop_FirstHalf         = (cmd.fire() && (funct === 2.U) && !channel_empty)
+    val doPop_FirstHalf         = (cmd.fire() && (funct === 3.U) && !channel_empty)
+    val doTop_SecondHalf        = (cmd.fire() && (funct === 4.U) && !channel_empty)
+    val doPop_SecondHalf        = (cmd.fire() && (funct === 5.U) && !channel_empty)
+
 
     val ghe_packet_in           = io.ghe_packet_in
     val doPush                  = (ghe_packet_in(73,64) =/= 0.U) && !channel_full
-    
+    val doPull                  = (doPop_FirstHalf || doPop_SecondHalf)
+
 
     // Check status
     // 0b01: empty
@@ -67,14 +72,6 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // Channel Push 
     channel_enq_valid          := Mux(doPush, true.B, false.B)
     channel_enq_data           := Mux(doPush, ghe_packet_in, 0.U) 
-
-    // Channel Pull
-    when (doPull){ // Buffer the second half of the packet, when we doPull
-      packet_secondhalf_reg     := channel_deq_data(63,0)
-    } .otherwise {
-      packet_secondhalf_reg     := packet_secondhalf_reg
-    }
-
     channel_deq_ready          := Mux(doPull, true.B, false.B)
 
     // Response
@@ -83,8 +80,10 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     rd_val                     := MuxCase(0.U, 
                                     Array(doCheck             -> Cat(zeros_channel_status,    channel_status_wire), 
-                                          doPull              -> Cat(zeros_pacekt_first_half, channel_deq_data(73,64)),
-                                          doPull_SecondHalf   -> packet_secondhalf_reg))
+                                          doTop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(73,64)),
+                                          doPop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(73,64)),
+                                          doTop_SecondHalf    -> channel_deq_data(63,0),
+                                          doPop_SecondHalf    -> channel_deq_data(63,0)))
     
     cmd.ready                  := true.B // Currently, it is always ready, because it is never block
     

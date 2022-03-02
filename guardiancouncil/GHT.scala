@@ -47,6 +47,13 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   u_ght_dc.io.ght_dc_inst_in   := this.io.ght_inst_in
   u_ght_dc.io.ght_dc_newcommit_in := u_ght_cc.io.ght_cc_newcommit_out
   this.io.ght_inst_type        := u_ght_dc.io.ght_dc_inst_type
-  val zeros                     = WireInit(0x55555555.U(64.W))
-  this.io.ght_packet_out       := Cat(u_ght_dc.io.ght_dc_inst_func_opcode, zeros)
+  // val zeros                     = WireInit(0x55555555.U(64.W))
+  val counter_reg               = RegInit(1.U(64.W))
+  this.io.ght_packet_out       := Cat(u_ght_dc.io.ght_dc_inst_func_opcode, counter_reg)
+
+  // Below code is used for tests
+  when (u_ght_dc.io.ght_dc_inst_func_opcode =/= 0.U)
+  {
+    counter_reg                := counter_reg + 1.U
+  }
 }
