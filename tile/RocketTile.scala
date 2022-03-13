@@ -141,6 +141,8 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   Annotated.params(this, outer.rocketParams)
 
   val core = Module(new Rocket(outer)(outer.p))
+  val ght_bridge = Module(new GH_Bridge(GH_BridgeParams(1)))
+
 
   //===== GuardianCouncil Function: Start ====//
   if (outer.tileParams.hartId == 0) {
@@ -149,6 +151,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     ght.io.ght_pcaddr_in := core.io.pc
     ght.io.resetvector_in := outer.resetVectorSinkNode.bundle
     ght.io.ght_inst_in := core.io.inst
+    ght.io.ght_mask_in := ght_bridge.io.mask_out
     val akira = ght.io.ght_inst_type
     outer.ght_packet_out_SRNode.bundle := ght.io.ght_packet_out
   } else
@@ -205,6 +208,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     core.io.rocc.interrupt := outer.roccs.map(_.module.io.interrupt).reduce(_ || _)
     //===== GuardianCouncil Function: Start ====//
     cmdRouter.get.io.ghe_packet_in := outer.ghe_packet_in_SKode.bundle
+    ght_bridge.io.mask_in := cmdRouter.get.io.ght_mask_out
     //===== GuardianCouncil Function: End   ====//
   }
 

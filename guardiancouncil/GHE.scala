@@ -29,8 +29,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Communication channel
     // Widith: xLen
-    // Depth: 64
-    val u_channel               = Module (new GH_FIFO(FIFOParams ((xLen+10), 256))) 
+    // Depth: 256
+    val u_channel               = Module (new GH_FIFO(FIFOParams ((xLen+10), 5096))) 
 
 
     // Internal signals
@@ -41,6 +41,9 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val channel_empty           = WireInit(true.B)
     val channel_full            = WireInit(false.B)
     val packet_secondhalf_reg   = RegInit(0.U((xLen).W))
+
+    // Big core register
+    val ght_mask_reg            = RegInit(1.U(1.W))
 
     u_channel.io.enq_valid     := channel_enq_valid
     u_channel.io.enq_bits      := channel_enq_data
@@ -55,6 +58,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doPop_FirstHalf         = (cmd.fire() && (funct === 3.U) && !channel_empty)
     val doTop_SecondHalf        = (cmd.fire() && (funct === 4.U) && !channel_empty)
     val doPop_SecondHalf        = (cmd.fire() && (funct === 5.U) && !channel_empty)
+    val doMask                  = (cmd.fire() && (funct === 7.U))
 
 
     val ghe_packet_in           = io.ghe_packet_in
@@ -85,6 +89,11 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doTop_SecondHalf    -> channel_deq_data(63,0),
                                           doPop_SecondHalf    -> channel_deq_data(63,0)))
     
+    when (doMask) {
+      ght_mask_reg             := rs1_val(0)
+    }
+    io.ght_mask_out            := ght_mask_reg
+
     cmd.ready                  := true.B // Currently, it is always ready, because it is never block
     
     io.resp.valid              := cmd.valid && xd

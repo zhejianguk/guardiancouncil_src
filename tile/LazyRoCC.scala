@@ -47,6 +47,7 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val exception = Input(Bool())
   //===== GuardianCouncil Function: Start ====//
   val ghe_packet_in = Input(UInt(74.W)) 
+  val ght_mask_out = Output(UInt(1.W))
   //===== GuardianCouncil Function: End   ====//
 }
 
@@ -98,6 +99,7 @@ trait HasLazyRoCCModule extends CanHavePTWModule
       respArb.io.in(i) <> Queue(rocc.module.io.resp)
       //===== GuardianCouncil Function: Start ====//
       rocc.module.io.ghe_packet_in := cmdRouter.io.ghe_packet_in
+      cmdRouter.io.ght_mask_in := rocc.module.io.ght_mask_out
       //===== GuardianCouncil Function: End   ====//
     }
 
@@ -409,6 +411,8 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val busy = Output(Bool())
     //===== GuardianCouncil Function: Start ====//
     val ghe_packet_in = Input(UInt(74.W))
+    val ght_mask_out  = Output(UInt(1.W))
+    val ght_mask_in = Input(UInt(1.W))
     //===== GuardianCouncil Function: End   ====//
   }
 
@@ -421,7 +425,9 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   }
   cmd.ready := cmdReadys.reduce(_ || _)
   io.busy := cmd.valid
-
+  //===== GuardianCouncil Function: Start ====//
+  io.ght_mask_out := io.ght_mask_in
+  //===== GuardianCouncil Function: End   ====//
   assert(PopCount(cmdReadys) <= 1.U,
     "Custom opcode matched for more than one accelerator")
 }
