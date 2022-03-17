@@ -29,6 +29,7 @@ trait HasGHT_CC_IO extends BaseModule {
 //==========================================================
 // Implementations
 //==========================================================
+// GHT Commit Counter
 class GHT_CC (val params: GHT_CC_Params) extends Module with HasGHT_CC_IO
 {
   val sys_inialised_reg       = RegInit (false.B) // Register used to identify if the system is inialised

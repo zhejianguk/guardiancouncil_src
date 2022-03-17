@@ -22,6 +22,7 @@ trait HasGHT_DC_IO extends BaseModule {
 //==========================================================
 // Implementations
 //==========================================================
+// GHT Decoder
 class GHT_DC () extends Module with HasGHT_DC_IO
 {
   // Filter of instruction
@@ -41,18 +42,22 @@ class GHT_DC () extends Module with HasGHT_DC_IO
   val opcode_LW_wire          = WireInit(false.B)
   val opcode_LBU_wire         = WireInit(false.B)
   val opcode_LHU_wire         = WireInit(false.B)
+  val opcode_LD_wire          = WireInit(false.B)
 
   opcode_LB_wire              := Mux(inst_filtered_wire === 0x03.U, true.B, false.B)
   opcode_LH_wire              := Mux(inst_filtered_wire === 0x83.U, true.B, false.B)
   opcode_LW_wire              := Mux(inst_filtered_wire === 0x103.U, true.B, false.B)
   opcode_LBU_wire             := Mux(inst_filtered_wire === 0x203.U, true.B, false.B)
   opcode_LHU_wire             := Mux(inst_filtered_wire === 0x283.U, true.B, false.B)
+  opcode_LD_wire              := Mux(inst_filtered_wire === 0x183.U, true.B, false.B)
+
 
   val inst_type_load           = opcode_LB_wire |
                                  opcode_LH_wire |
                                  opcode_LW_wire |
                                  opcode_LBU_wire|
-                                 opcode_LHU_wire
+                                 opcode_LHU_wire|
+                                 opcode_LD_wire
 
   val int_type_x               = 0.U; // Revisit
   val int_type_y               = 0.U; // Revisit

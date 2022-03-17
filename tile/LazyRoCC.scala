@@ -46,7 +46,8 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val interrupt = Output(Bool())
   val exception = Input(Bool())
   //===== GuardianCouncil Function: Start ====//
-  val ghe_packet_in = Input(UInt(74.W)) 
+  val ghe_packet_in = Input(UInt(74.W))
+  val ghe_status_warning_out = Output(UInt(1.W))
   val ght_mask_out = Output(UInt(1.W))
   //===== GuardianCouncil Function: End   ====//
 }
@@ -100,6 +101,7 @@ trait HasLazyRoCCModule extends CanHavePTWModule
       //===== GuardianCouncil Function: Start ====//
       rocc.module.io.ghe_packet_in := cmdRouter.io.ghe_packet_in
       cmdRouter.io.ght_mask_in := rocc.module.io.ght_mask_out
+      cmdRouter.io.ghe_status_warning_in := rocc.module.io.ghe_status_warning_out
       //===== GuardianCouncil Function: End   ====//
     }
 
@@ -411,6 +413,8 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val busy = Output(Bool())
     //===== GuardianCouncil Function: Start ====//
     val ghe_packet_in = Input(UInt(74.W))
+    val ghe_status_warning_in = Input(UInt(1.W))
+    val ghe_status_warning_out = Output(UInt(1.W))
     val ght_mask_out  = Output(UInt(1.W))
     val ght_mask_in = Input(UInt(1.W))
     //===== GuardianCouncil Function: End   ====//
@@ -426,6 +430,7 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   cmd.ready := cmdReadys.reduce(_ || _)
   io.busy := cmd.valid
   //===== GuardianCouncil Function: Start ====//
+  io.ghe_status_warning_out := io.ghe_status_warning_in
   io.ght_mask_out := io.ght_mask_in
   //===== GuardianCouncil Function: End   ====//
   assert(PopCount(cmdReadys) <= 1.U,

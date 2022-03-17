@@ -9,8 +9,8 @@ case class GH_BridgeParams(
 )
 
 class GH_BridgeIO(params: GH_BridgeParams) extends Bundle {
-  val mask_in = Input(UInt(params.width.W))
-  val mask_out = Output(UInt(params.width.W))
+  val in = Input(UInt(params.width.W))
+  val out = Output(UInt(params.width.W))
 }
 
 trait HasGH_BridgeIO extends BaseModule {
@@ -19,5 +19,5 @@ trait HasGH_BridgeIO extends BaseModule {
 }
 
 class GH_Bridge (val params: GH_BridgeParams) extends Module with HasGH_BridgeIO {
-  io.mask_out <> io.mask_in
+  io.out <> io.in
 }
