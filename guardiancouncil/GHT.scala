@@ -54,7 +54,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   this.io.ght_packet_out       := Mux((io.ght_mask_in === 1.U), 0.U, ght_pack)
                          
   // Below code is used for tests
-  when ((inst_type === 1.U) && (io.ght_mask_in === 1.U))
+  when ((inst_type === 1.U) && (io.ght_mask_in === 0.U))
   {
     counter_reg                := counter_reg + 1.U
   }

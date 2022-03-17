@@ -153,13 +153,13 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     ght.io.ght_inst_in := core.io.inst
     ght.io.ght_mask_in := ght_bridge.io.out
     outer.ght_packet_out_SRNode.bundle := ght.io.ght_packet_out
-    core.io.clk_enable := ~(outer.bigcore_hang_in_SKNode.bundle) 
+    core.io.clk_enable_gh := ~(outer.bigcore_hang_in_SKNode.bundle) 
     outer.ghe_status_warning_out_SRNode.bundle := ghe_bridge.io.out
   } else
   { // Other cores:
 
     // For other cores: no GHT is required, and hence tied-off
-    core.io.clk_enable := 1.U // the core is never gated
+    core.io.clk_enable_gh := 1.U // the core is never gated
     outer.ght_packet_out_SRNode.bundle := 0.U
     outer.ghe_status_warning_out_SRNode.bundle := ghe_bridge.io.out
   }
