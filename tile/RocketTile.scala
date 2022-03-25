@@ -142,7 +142,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
 
   val core = Module(new Rocket(outer)(outer.p))
   val ght_bridge = Module(new GH_Bridge(GH_BridgeParams(1)))
-  val ghe_bridge = Module(new GH_Bridge(GH_BridgeParams(1)))
+  val ghe_bridge = Module(new GH_Bridge(GH_BridgeParams(2)))
 
   //===== GuardianCouncil Function: Start ====//
   if (outer.tileParams.hartId == 0) {
@@ -154,14 +154,14 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     ght.io.ght_mask_in := ght_bridge.io.out
     outer.ght_packet_out_SRNode.bundle := ght.io.ght_packet_out
     core.io.clk_enable_gh := ~(outer.bigcore_hang_in_SKNode.bundle) 
-    outer.ghe_status_warning_out_SRNode.bundle := ghe_bridge.io.out
+    outer.ghe_event_out_SRNode.bundle := ghe_bridge.io.out
   } else
   { // Other cores:
 
     // For other cores: no GHT is required, and hence tied-off
     core.io.clk_enable_gh := 1.U // the core is never gated
     outer.ght_packet_out_SRNode.bundle := 0.U
-    outer.ghe_status_warning_out_SRNode.bundle := ghe_bridge.io.out
+    outer.ghe_event_out_SRNode.bundle := ghe_bridge.io.out
   }
     
    //===== GuardianCouncil Function: End ====//
@@ -213,8 +213,12 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     core.io.rocc.interrupt := outer.roccs.map(_.module.io.interrupt).reduce(_ || _)
     //===== GuardianCouncil Function: Start ====//
     cmdRouter.get.io.ghe_packet_in := outer.ghe_packet_in_SKNode.bundle
+    cmdRouter.get.io.ghe_status_in := outer.ghe_status_in_SKNode.bundle
+    ghe_bridge.io.in := cmdRouter.get.io.ghe_event_out
     ght_bridge.io.in := cmdRouter.get.io.ght_mask_out
-    ghe_bridge.io.in := cmdRouter.get.io.ghe_status_warning_out
+    outer.ght_status_out_SRNode.bundle := cmdRouter.get.io.ght_status_out
+    // For big_core GHT
+    cmdRouter.get.io.bigcore_comp := outer.bigcore_comp_in_SKNode.bundle                            
     //===== GuardianCouncil Function: End   ====//
   }
 

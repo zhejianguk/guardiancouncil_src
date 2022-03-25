@@ -43,9 +43,6 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val packet_secondhalf_reg   = RegInit(0.U((xLen).W))
     val channel_warning         = WireInit(0.U(1.W))
 
-    // Big core register
-    val ght_mask_reg            = RegInit(1.U(1.W))
-
     u_channel.io.enq_valid     := channel_enq_valid
     u_channel.io.enq_bits      := channel_enq_data
     u_channel.io.deq_ready     := channel_deq_ready
@@ -56,16 +53,23 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Software Funcs
     val doCheck                 = (cmd.fire() && (funct === 0.U))
+    val doEvent                 = (cmd.fire() && (funct === 1.U))
     val doTop_FirstHalf         = (cmd.fire() && (funct === 2.U) && !channel_empty)
     val doPop_FirstHalf         = (cmd.fire() && (funct === 3.U) && !channel_empty)
     val doTop_SecondHalf        = (cmd.fire() && (funct === 4.U) && !channel_empty)
     val doPop_SecondHalf        = (cmd.fire() && (funct === 5.U) && !channel_empty)
-    val doMask                  = (cmd.fire() && (funct === 7.U))
+    val doCheckStatus           = (cmd.fire() && (funct === 7.U))
+    // For big core
+    val doMask                  = (cmd.fire() && (funct === 6.U))
+    val bigComp                 = io.bigcore_comp
 
 
     val ghe_packet_in           = io.ghe_packet_in
     val doPush                  = (ghe_packet_in(73,64) =/= 0.U) && !channel_full
     val doPull                  = (doPop_FirstHalf || doPop_SecondHalf)
+    val ghe_status_in           = io.ghe_status_in
+    val ghe_status_reg          = RegInit(0x0.U(32.W))
+    val ghe_event_reg           = RegInit(0x0.U(1.W))
 
 
     // Check status
@@ -89,21 +93,35 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doTop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(73,64)),
                                           doPop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(73,64)),
                                           doTop_SecondHalf    -> channel_deq_data(63,0),
-                                          doPop_SecondHalf    -> channel_deq_data(63,0)))
-    
-    when (doMask) {
-      ght_mask_reg             := rs1_val(0)
+                                          doPop_SecondHalf    -> channel_deq_data(63,0),
+                                          doCheckStatus       -> ghe_status_reg,
+                                          doMask              -> Cat(bigComp, rs1_val(15, 0))))
+    when (doEvent) {
+      ghe_event_reg            := rs1_val(0)
     }
-    io.ght_mask_out            := ght_mask_reg
-
+    
+    ghe_status_reg             := ghe_status_in
     cmd.ready                  := true.B // Currently, it is always ready, because it is never block
     
-    io.ghe_status_warning_out  := channel_warning
+    io.ghe_event_out           := Cat(ghe_event_reg, channel_warning)
     io.resp.valid              := cmd.valid && xd
     io.resp.bits.rd            := cmd.bits.inst.rd
     io.resp.bits.data          := rd_val
     io.busy                    := cmd.valid // Later add more situations
     io.interrupt               := false.B
+
+
+    // Big core register
+    // 0: test is not start; 
+    // 1: test is started
+    // 2: test is finished 
+    // Registers 
+    val ght_status_reg          = RegInit(0.U(32.W)) 
+    when (doMask) {
+      ght_status_reg           := rs1_val
+    }
+    io.ght_mask_out            := ~(ght_status_reg(0))
+    io.ght_status_out          := ght_status_reg
 }
 
 
