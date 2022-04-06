@@ -430,7 +430,7 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     //===== GuardianCouncil Function: End   ====//
   }
 
-  val cmd = Queue(io.in)
+  val cmd = io.in
   val cmdReadys = io.out.zip(opcodes).map { case (out, opcode) =>
     val me = opcode.matches(cmd.bits.inst.opcode)
     out.valid := cmd.valid && me

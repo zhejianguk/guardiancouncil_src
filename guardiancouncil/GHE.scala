@@ -58,6 +58,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doPop_FirstHalf         = (cmd.fire() && (funct === 3.U) && !channel_empty)
     val doTop_SecondHalf        = (cmd.fire() && (funct === 4.U) && !channel_empty)
     val doPop_SecondHalf        = (cmd.fire() && (funct === 5.U) && !channel_empty)
+    val doReportEmpty           = (cmd.fire() && ((funct === 2.U) || (funct === 3.U)) && channel_empty)
     val doCheckStatus           = (cmd.fire() && (funct === 7.U))
     // For big core
     val doMask                  = (cmd.fire() && (funct === 6.U))
@@ -94,6 +95,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doPop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(73,64)),
                                           doTop_SecondHalf    -> channel_deq_data(63,0),
                                           doPop_SecondHalf    -> channel_deq_data(63,0),
+                                          doReportEmpty       -> 0x3FF.U,
                                           doCheckStatus       -> ghe_status_reg,
                                           doMask              -> Cat(bigComp, rs1_val(15, 0))))
     when (doEvent) {
