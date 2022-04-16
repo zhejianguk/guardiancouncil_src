@@ -639,7 +639,12 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   coverExceptions(wb_xcpt, wb_cause, "WRITEBACK", wbCoverCauses)
 
   val wb_pc_valid = wb_reg_valid || wb_reg_replay || wb_reg_xcpt
-  val wb_wxd = wb_reg_valid && wb_ctrl.wxd && (wb_waddr =/= 0) && !io.rocc.resp.valid
+  //===== GuardianCouncil Function: Start ====//
+  // Original design:
+  // val wb_wxd = wb_reg_valid && wb_ctrl.wxd
+  // In GuardianCouncil, RoCC response can be replied in a single cycle, therefore !io.rocc.resp.valid is added
+  val wb_wxd = wb_reg_valid && wb_ctrl.wxd && !io.rocc.resp.valid
+  //===== GuardianCouncil Function: End   ====//
   val wb_set_sboard = wb_ctrl.div || wb_dcache_miss || wb_ctrl.rocc
   val replay_wb_common = io.dmem.s2_nack || wb_reg_replay
   // val replay_wb_rocc = wb_reg_valid && wb_ctrl.rocc && !io.rocc.cmd.ready
@@ -676,7 +681,12 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   }
 
 
+  //===== GuardianCouncil Function: Start ====//
+  // Original design:
+  // val wb_valid = wb_reg_valid && !replay_wb && !wb_xcpt
+  // In GuardianCouncil, RoCC response can be replied in a single cycle, therefore !io.rocc.resp.valid is added
   val wb_valid = wb_reg_valid && !replay_wb && !wb_xcpt && !io.rocc.resp.valid
+  //===== GuardianCouncil Function: End   ====//
   val wb_wen = wb_valid && wb_ctrl.wxd
   val rf_wen = wb_wen || ll_wen
   val rf_waddr = Mux(ll_wen, ll_waddr, wb_waddr)
@@ -778,7 +788,12 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   rocc_blocked := !wb_xcpt && !io.rocc.cmd.ready && (io.rocc.cmd.valid || rocc_blocked)
 
   val ctrl_stalld =
+    //===== GuardianCouncil Function: Start ====//
+    // Original design:
+    // id_ex_hazard || id_mem_hazard || id_wb_hazard || id_sboard_hazard ||
+    // In GuardianCouncil, RoCC response can be replied in a single cycle, therefore !io.rocc.resp.valid is added
     id_ex_hazard || id_mem_hazard || id_wb_hazard && !(io.rocc.resp.valid) || id_sboard_hazard ||
+    //===== GuardianCouncil Function: End   ====//
     csr.io.singleStep && (ex_reg_valid || mem_reg_valid || wb_reg_valid) ||
     id_csr_en && csr.io.decode(0).fp_csr && !io.fpu.fcsr_rdy ||
     id_ctrl.fp && id_stall_fpu ||
@@ -862,13 +877,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   // don't let D$ go to sleep if we're probably going to use it soon
   io.dmem.keep_clock_enabled := ibuf.io.inst(0).valid && id_ctrl.mem && !csr.io.csr_stall
 
-  // io.rocc.cmd.valid := wb_reg_valid && wb_ctrl.rocc && !replay_wb_common
-  // io.rocc.exception := wb_xcpt && csr.io.status.xs.orR
-  // io.rocc.cmd.bits.status := csr.io.status
-  // io.rocc.cmd.bits.inst := new RoCCInstruction().fromBits(wb_reg_inst)
-  // io.rocc.cmd.bits.rs1 := wb_reg_wdata
-  // io.rocc.cmd.bits.rs2 := wb_reg_rs2
-
+  //===== GuardianCouncil Function: Start ====//
   when (mem_pc_valid) {
     io.rocc.cmd.valid := mem_reg_valid && mem_ctrl.rocc //revisit
     io.rocc.exception := mem_xcpt && csr.io.status.xs.orR
@@ -877,7 +886,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
     io.rocc.cmd.bits.rs1 := mem_reg_wdata
     io.rocc.cmd.bits.rs2 := mem_reg_rs2
   }
-
+  //===== GuardianCouncil Function: End  ====//
 
   // gate the clock
   val unpause = csr.io.time(rocketParams.lgPauseCycles-1, 0) === 0 || csr.io.inhibit_cycle || io.dmem.perf.release || take_pc
