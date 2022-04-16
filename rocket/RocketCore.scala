@@ -639,10 +639,11 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   coverExceptions(wb_xcpt, wb_cause, "WRITEBACK", wbCoverCauses)
 
   val wb_pc_valid = wb_reg_valid || wb_reg_replay || wb_reg_xcpt
-  val wb_wxd = wb_reg_valid && wb_ctrl.wxd
+  val wb_wxd = wb_reg_valid && wb_ctrl.wxd && (wb_waddr =/= 0) && !io.rocc.resp.valid
   val wb_set_sboard = wb_ctrl.div || wb_dcache_miss || wb_ctrl.rocc
   val replay_wb_common = io.dmem.s2_nack || wb_reg_replay
-  val replay_wb_rocc = wb_reg_valid && wb_ctrl.rocc && !io.rocc.cmd.ready
+  // val replay_wb_rocc = wb_reg_valid && wb_ctrl.rocc && !io.rocc.cmd.ready
+  val replay_wb_rocc = wb_reg_valid && wb_ctrl.rocc && Bool(false) // in guardian council, rocc.cmd.ready is always ready
   val replay_wb = replay_wb_common || replay_wb_rocc
   take_pc_wb := replay_wb || wb_xcpt || csr.io.eret || wb_reg_flush_pipe
 
@@ -674,7 +675,8 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
     ll_wen := Bool(true)
   }
 
-  val wb_valid = wb_reg_valid && !replay_wb && !wb_xcpt
+
+  val wb_valid = wb_reg_valid && !replay_wb && !wb_xcpt && !io.rocc.resp.valid
   val wb_wen = wb_valid && wb_ctrl.wxd
   val rf_wen = wb_wen || ll_wen
   val rf_waddr = Mux(ll_wen, ll_waddr, wb_waddr)
@@ -776,7 +778,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   rocc_blocked := !wb_xcpt && !io.rocc.cmd.ready && (io.rocc.cmd.valid || rocc_blocked)
 
   val ctrl_stalld =
-    id_ex_hazard || id_mem_hazard || id_wb_hazard || id_sboard_hazard ||
+    id_ex_hazard || id_mem_hazard || id_wb_hazard && !(io.rocc.resp.valid) || id_sboard_hazard ||
     csr.io.singleStep && (ex_reg_valid || mem_reg_valid || wb_reg_valid) ||
     id_csr_en && csr.io.decode(0).fp_csr && !io.fpu.fcsr_rdy ||
     id_ctrl.fp && id_stall_fpu ||
@@ -860,12 +862,22 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   // don't let D$ go to sleep if we're probably going to use it soon
   io.dmem.keep_clock_enabled := ibuf.io.inst(0).valid && id_ctrl.mem && !csr.io.csr_stall
 
-  io.rocc.cmd.valid := wb_reg_valid && wb_ctrl.rocc && !replay_wb_common
-  io.rocc.exception := wb_xcpt && csr.io.status.xs.orR
-  io.rocc.cmd.bits.status := csr.io.status
-  io.rocc.cmd.bits.inst := new RoCCInstruction().fromBits(wb_reg_inst)
-  io.rocc.cmd.bits.rs1 := wb_reg_wdata
-  io.rocc.cmd.bits.rs2 := wb_reg_rs2
+  // io.rocc.cmd.valid := wb_reg_valid && wb_ctrl.rocc && !replay_wb_common
+  // io.rocc.exception := wb_xcpt && csr.io.status.xs.orR
+  // io.rocc.cmd.bits.status := csr.io.status
+  // io.rocc.cmd.bits.inst := new RoCCInstruction().fromBits(wb_reg_inst)
+  // io.rocc.cmd.bits.rs1 := wb_reg_wdata
+  // io.rocc.cmd.bits.rs2 := wb_reg_rs2
+
+  when (mem_pc_valid) {
+    io.rocc.cmd.valid := mem_reg_valid && mem_ctrl.rocc //revisit
+    io.rocc.exception := mem_xcpt && csr.io.status.xs.orR
+    io.rocc.cmd.bits.status := csr.io.status
+    io.rocc.cmd.bits.inst := new RoCCInstruction().fromBits(mem_reg_inst)
+    io.rocc.cmd.bits.rs1 := mem_reg_wdata
+    io.rocc.cmd.bits.rs2 := mem_reg_rs2
+  }
+
 
   // gate the clock
   val unpause = csr.io.time(rocketParams.lgPauseCycles-1, 0) === 0 || csr.io.inhibit_cycle || io.dmem.perf.release || take_pc
