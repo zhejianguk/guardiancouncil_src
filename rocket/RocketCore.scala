@@ -667,9 +667,9 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   val ll_waddr = Wire(init = div.io.resp.bits.tag)
   val ll_wen = Wire(init = div.io.resp.fire())
   if (usingRoCC) {
-    io.rocc.resp.ready := !wb_wxd
+    io.rocc.resp.ready := Bool(true)
     when (io.rocc.resp.fire()) {
-      div.io.resp.ready := Bool(true)
+      div.io.resp.ready := Bool(false)
       ll_wdata := io.rocc.resp.bits.data
       ll_waddr := io.rocc.resp.bits.rd
       ll_wen := Bool(true)
