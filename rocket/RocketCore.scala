@@ -357,10 +357,13 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   ) else Nil)
   coverExceptions(id_xcpt, id_cause, "DECODE", idCoverCauses)
 
+  //===== GuardianCouncil Function: Start ====//
+  // Enabling data bypass for RoCC commands
   val dcache_bypass_data =
-    if (fastLoadByte) io.dmem.resp.bits.data(xLen-1, 0)
-    else if (fastLoadWord) io.dmem.resp.bits.data_word_bypass(xLen-1, 0)
+    if (fastLoadByte) Mux(mem_ctrl.rocc, io.rocc.resp.bits.data, io.dmem.resp.bits.data(xLen-1, 0))
+    else if (fastLoadWord) Mux(mem_ctrl.rocc, io.rocc.resp.bits.data, io.dmem.resp.bits.data_word_bypass(xLen-1, 0))
     else wb_reg_wdata
+  //===== GuardianCouncil Function: End ====//
 
   // detect bypass opportunities
   val ex_waddr = ex_reg_inst(11,7) & regAddrMask
@@ -369,7 +372,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   val bypass_sources = IndexedSeq(
     (Bool(true), UInt(0), UInt(0)), // treat reading x0 as a bypass
     (ex_reg_valid && ex_ctrl.wxd, ex_waddr, mem_reg_wdata),
-    (mem_reg_valid && mem_ctrl.wxd && !mem_ctrl.mem, mem_waddr, wb_reg_wdata),
+    (mem_reg_valid && mem_ctrl.wxd && (!mem_ctrl.mem && !mem_ctrl.rocc), mem_waddr, wb_reg_wdata), // avoding RoCC path
     (mem_reg_valid && mem_ctrl.wxd, mem_waddr, dcache_bypass_data))
   val id_bypass_src = id_raddr.map(raddr => bypass_sources.map(s => s._1 && s._2 === raddr))
 
@@ -642,13 +645,13 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   //===== GuardianCouncil Function: Start ====//
   // Original design:
   // val wb_wxd = wb_reg_valid && wb_ctrl.wxd
+  // val replay_wb_rocc = wb_reg_valid && wb_ctrl.rocc && !io.rocc.cmd.ready
   // In GuardianCouncil, RoCC response can be replied in a single cycle, therefore !io.rocc.resp.valid is added
   val wb_wxd = wb_reg_valid && wb_ctrl.wxd && !io.rocc.resp.valid
+  val replay_wb_rocc = wb_reg_valid && wb_ctrl.rocc && Bool(false) // in guardian council, rocc.cmd.ready is always ready
   //===== GuardianCouncil Function: End   ====//
   val wb_set_sboard = wb_ctrl.div || wb_dcache_miss || wb_ctrl.rocc
   val replay_wb_common = io.dmem.s2_nack || wb_reg_replay
-  // val replay_wb_rocc = wb_reg_valid && wb_ctrl.rocc && !io.rocc.cmd.ready
-  val replay_wb_rocc = wb_reg_valid && wb_ctrl.rocc && Bool(false) // in guardian council, rocc.cmd.ready is always ready
   val replay_wb = replay_wb_common || replay_wb_rocc
   take_pc_wb := replay_wb || wb_xcpt || csr.io.eret || wb_reg_flush_pipe
 
@@ -666,7 +669,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   if (usingRoCC) {
     io.rocc.resp.ready := !wb_wxd
     when (io.rocc.resp.fire()) {
-      div.io.resp.ready := Bool(false)
+      div.io.resp.ready := Bool(true)
       ll_wdata := io.rocc.resp.bits.data
       ll_waddr := io.rocc.resp.bits.rd
       ll_wen := Bool(true)
@@ -758,7 +761,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   val mem_mem_cmd_bh =
     if (fastLoadWord) Bool(!fastLoadByte) && mem_reg_slow_bypass
     else Bool(true)
-  val mem_cannot_bypass = mem_ctrl.csr =/= CSR.N || mem_ctrl.mem && mem_mem_cmd_bh || mem_ctrl.mul || mem_ctrl.div || mem_ctrl.fp || mem_ctrl.rocc
+  val mem_cannot_bypass = mem_ctrl.csr =/= CSR.N || mem_ctrl.mem && mem_mem_cmd_bh || mem_ctrl.mul || mem_ctrl.div || mem_ctrl.fp
   val data_hazard_mem = mem_ctrl.wxd && checkHazards(hazard_targets, _ === mem_waddr)
   val fp_data_hazard_mem = mem_ctrl.wfd && checkHazards(fp_hazard_targets, _ === mem_waddr)
   val id_mem_hazard = mem_reg_valid && (data_hazard_mem && mem_cannot_bypass || fp_data_hazard_mem)
@@ -791,8 +794,8 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
     //===== GuardianCouncil Function: Start ====//
     // Original design:
     // id_ex_hazard || id_mem_hazard || id_wb_hazard || id_sboard_hazard ||
-    // In GuardianCouncil, RoCC response can be replied in a single cycle, therefore !io.rocc.resp.valid is added
-    id_ex_hazard || id_mem_hazard || id_wb_hazard && !(io.rocc.resp.valid) || id_sboard_hazard ||
+    // In GuardianCouncil, RoCC response can be replied in a single cycle, therefore RoCC does not cause a hazzard
+    id_ex_hazard || id_mem_hazard || (id_wb_hazard && !wb_ctrl.rocc) || id_sboard_hazard ||
     //===== GuardianCouncil Function: End   ====//
     csr.io.singleStep && (ex_reg_valid || mem_reg_valid || wb_reg_valid) ||
     id_csr_en && csr.io.decode(0).fp_csr && !io.fpu.fcsr_rdy ||
