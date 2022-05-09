@@ -147,10 +147,11 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   //===== GuardianCouncil Function: Start ====//
   if (outer.tileParams.hartId == 0) {
     println("#### Jessica #### Generating GHT for the big core, HartID: ", outer.rocketParams.hartId, "...!!!")
-    val ght = Module(new GHT(GHTParams(vaddrBitsExtended)))
+    val ght = Module(new GHT(GHTParams(vaddrBitsExtended, p(XLen))))
     ght.io.ght_pcaddr_in := core.io.pc
     ght.io.resetvector_in := outer.resetVectorSinkNode.bundle
     ght.io.ght_inst_in := core.io.inst
+    ght.io.ght_alu_in := core.io.alu_2cycle_delay
     ght.io.ght_mask_in := ght_bridge.io.out
     outer.ght_packet_out_SRNode.bundle := ght.io.ght_packet_out
     core.io.clk_enable_gh := ~(outer.bigcore_hang_in_SKNode.bundle) 

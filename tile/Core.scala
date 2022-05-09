@@ -155,6 +155,7 @@ trait HasCoreIO extends HasTileParameters {
     val pc = UInt(vaddrBitsExtended.W).asOutput
     val inst = UInt(32.W).asOutput
     val clk_enable_gh = Bool().asInput
+    val alu_2cycle_delay = UInt(p(XLen).W).asOutput
     //===== GuardianCouncil Function: End ====//
   }
 }

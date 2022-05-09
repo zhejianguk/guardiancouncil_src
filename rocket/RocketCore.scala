@@ -398,6 +398,15 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   alu.io.in2 := ex_op2.asUInt
   alu.io.in1 := ex_op1.asUInt
 
+  //===== GuardianCouncil Function: Start ====//
+  val alu_1cycle_delay_reg = Reg(UInt())
+  val alu_2cycle_delay_reg = Reg(UInt())
+  alu_1cycle_delay_reg := alu.io.out
+  alu_2cycle_delay_reg := alu_1cycle_delay_reg
+  io.alu_2cycle_delay := alu_2cycle_delay_reg
+  //===== GuardianCouncil Function: Start ====//
+
+
   val ex_scie_unpipelined_wdata = if (!rocketParams.useSCIE) 0.U else {
     val u = Module(new SCIEUnpipelined(xLen))
     u.io.insn := ex_reg_inst
