@@ -43,9 +43,7 @@ case class RocketCoreParams(
   fastLoadWord: Boolean = true,
   fastLoadByte: Boolean = false,
   branchPredictionModeCSR: Boolean = false,
-  //===== GuardianCouncil Function: Start ====//
-  clockGate: Boolean = true,
-  //===== GuardianCouncil Function: End   ====//
+  clockGate: Boolean = false,
   mvendorid: Int = 0, // 0 means non-commercial implementation
   mimpid: Int = 0x20181004, // release date in BCD
   mulDiv: Option[MulDivParams] = Some(MulDivParams()),
@@ -816,7 +814,9 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
     id_do_fence ||
     csr.io.csr_stall ||
     id_reg_pause ||
-    io.traceStall
+    io.traceStall ||
+    !io.clk_enable_gh
+
   ctrl_killd := !ibuf.io.inst(0).valid || ibuf.io.inst(0).bits.replay || take_pc_mem_wb || ctrl_stalld || csr.io.interrupt
 
   io.imem.req.valid := take_pc
@@ -867,10 +867,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   io.fpu.dmem_resp_data := io.dmem.resp.bits.data_word_bypass
   io.fpu.dmem_resp_type := io.dmem.resp.bits.size
   io.fpu.dmem_resp_tag := dmem_resp_waddr
-  //===== GuardianCouncil Function: Start ====//
-  // io.fpu.keep_clock_enabled := io.ptw.customCSRs.disableCoreClockGate // Clock gating using CSR registers
-  io.fpu.keep_clock_enabled := io.clk_enable_gh // Clock gating using GH signals
-  //===== GuardianCouncil Function: End ====//
+  io.fpu.keep_clock_enabled := io.ptw.customCSRs.disableCoreClockGate
 
   io.dmem.req.valid     := ex_reg_valid && ex_ctrl.mem
   val ex_dcache_tag = Cat(ex_waddr, ex_ctrl.fp)
@@ -907,19 +904,15 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   io.wfi := csr.io.status.wfi
   if (rocketParams.clockGate) {
     long_latency_stall := csr.io.csr_stall || io.dmem.perf.blocked || id_reg_pause && !unpause
-    //===== GuardianCouncil Function: Start ====//
-    clock_en := clock_en_reg  // Clock gating using GH signals
-    clock_en_reg := io.clk_enable_gh  // // Clock gating using GH signals
 
-    // clock_en := clock_en_reg || ex_pc_valid || (!long_latency_stall && io.imem.resp.valid) // Clock gating using CSR registers
-    // Clock gating using CSR registers
-    // clock_en_reg :=
-    //  ex_pc_valid || mem_pc_valid || wb_pc_valid || // instruction in flight
-    //  io.ptw.customCSRs.disableCoreClockGate || // chicken bit
-    //  !div.io.req.ready || // mul/div in flight
-    //  usingFPU && !io.fpu.fcsr_rdy || // long-latency FPU in flight
-    //  io.dmem.replay_next || // long-latency load replaying
-    //  (!long_latency_stall && (ibuf.io.inst(0).valid || io.imem.resp.valid)) // instruction pending
+    clock_en := clock_en_reg || ex_pc_valid || (!long_latency_stall && io.imem.resp.valid)
+    clock_en_reg :=
+      ex_pc_valid || mem_pc_valid || wb_pc_valid || // instruction in flight
+      io.ptw.customCSRs.disableCoreClockGate || // chicken bit
+      !div.io.req.ready || // mul/div in flight
+      usingFPU && !io.fpu.fcsr_rdy || // long-latency FPU in flight
+      io.dmem.replay_next || // long-latency load replaying
+      (!long_latency_stall && (ibuf.io.inst(0).valid || io.imem.resp.valid)) // instruction pending
     println("#### Jessica #### Creating clock gating for Rocekt ...!!!")
     //===== GuardianCouncil Function: End ====//
     assert(!(ex_pc_valid || mem_pc_valid || wb_pc_valid) || clock_en)
