@@ -915,6 +915,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
       (!long_latency_stall && (ibuf.io.inst(0).valid || io.imem.resp.valid)) // instruction pending
     println("#### Jessica #### Creating clock gating for Rocekt ...!!!")
     //===== GuardianCouncil Function: End ====//
+    
     assert(!(ex_pc_valid || mem_pc_valid || wb_pc_valid) || clock_en)
   }
 
