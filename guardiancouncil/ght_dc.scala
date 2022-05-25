@@ -93,7 +93,7 @@ class GHT_Filter_SuperSet (val params: GHT_DC_Params) extends Module with HasGHT
                                      inst_type_load)
 
   io.packet_out               := MuxCase(0.U, 
-                                   Array(inst_type_load  -> Cat(inst_filtered_wire, packet_zeros), // load
+                                   Array(inst_type_load  -> Cat(inst_filtered_wire, io.ght_dc_alu_in), // load
                                          inst_type_store -> Cat(inst_filtered_wire, io.ght_dc_alu_in)  // store
                                         )
                                         ) 

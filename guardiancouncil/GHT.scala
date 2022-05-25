@@ -35,7 +35,7 @@ trait HasGHT_IO extends BaseModule {
 class GHT (val params: GHTParams) extends Module with HasGHT_IO
 {
   val u_ght_cc                  = Module (new GHT_CC(GHT_CC_Params (params.width_core_pc)))
-  val u_ght_cfg                 = Module (new GHT_CFG())
+  val u_ght_cfg                 = Module (new GHT_CFG(GHT_CFG_Params (params.totalnumber_of_checkers)))
 
   //==========================================================
   // Filters
@@ -63,9 +63,19 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   val core_d_u_pmc_sch          = u_pmc_sch.io.core_d
 
 
+  val u_sani_sch                = Module (new GHT_SCH_RR(GHT_SCH_Params (2, params.totalnumber_of_checkers)))
+  u_sani_sch.io.core_s          := u_ght_cfg.io.sani_core_s
+  u_sani_sch.io.core_e          := u_ght_cfg.io.sani_core_e
+  u_sani_sch.io.monitor_inst(0) := u_ght_cfg.io.sani_inst_1
+  u_sani_sch.io.monitor_inst(1) := u_ght_cfg.io.sani_inst_2
+  u_sani_sch.io.inst_type       := inst_type
+  val core_d_u_sani_sch          = u_sani_sch.io.core_d
+
+
+
   //==========================================================
   // Output generation
   //==========================================================
-  io.ght_packet_out       := Mux(((io.ght_mask_in === 1.U) | (core_d_u_pmc_sch === 0.U)), 0.U, ght_pack)
-  io.ght_packet_dest      := core_d_u_pmc_sch
+  io.ght_packet_out       := Mux((io.ght_mask_in === 1.U), 0.U, ght_pack)
+  io.ght_packet_dest      := core_d_u_pmc_sch|core_d_u_sani_sch
 }
