@@ -147,7 +147,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   //===== GuardianCouncil Function: Start ====//
   if (outer.tileParams.hartId == 0) {
     println("#### Jessica #### Generating GHT for the big core, HartID: ", outer.rocketParams.hartId, "...!!!")
-    val ght = Module(new GHT(GHTParams(vaddrBitsExtended, p(XLen))))
+    val ght = Module(new GHT(GHTParams(vaddrBitsExtended, p(XLen), 32))) // revisit: set 32 as the total number of checkers.
     ght.io.ght_pcaddr_in := core.io.pc
     ght.io.resetvector_in := outer.resetVectorSinkNode.bundle
     ght.io.ght_inst_in := core.io.inst

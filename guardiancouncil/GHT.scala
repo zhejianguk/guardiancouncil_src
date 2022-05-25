@@ -2,7 +2,6 @@ package freechips.rocketchip.guardiancouncil
 
 
 import chisel3._
-import chisel3.util._
 import chisel3.experimental.{BaseModule}
 
 //==========================================================
@@ -10,7 +9,8 @@ import chisel3.experimental.{BaseModule}
 //==========================================================
 case class GHTParams(
   width_core_pc: Int,
-  width_data: Int
+  width_data: Int,
+  totalnumber_of_checkers: Int
 )
 
 //==========================================================
@@ -33,18 +33,14 @@ trait HasGHT_IO extends BaseModule {
 
 class GHT (val params: GHTParams) extends Module with HasGHT_IO
 {
-  val ght_pack                  = WireInit(0.U(74.W))
-  
   val u_ght_cc                  = Module (new GHT_CC(GHT_CC_Params (params.width_core_pc)))
+  val u_ght_cfg                 = Module (new GHT_CFG())
 
   //==========================================================
   // Filters
   //==========================================================
-  // Filter: PMC
-  // val u_ght_dc                  = Module (new GHT_DC_PMC())
-
-  // Filter: Sanitiser
-  val u_ght_dc                  = Module (new GHT_DC_Sanitiser(GHT_DC_Params (params.width_data)))
+  // Filter: PMC + Sanitiser
+  val u_ght_dc                  = Module (new GHT_Filter_SuperSet(GHT_DC_Params (params.width_data)))
 
   u_ght_cc.io.resetvector_in   := this.io.resetvector_in
   u_ght_cc.io.ght_cc_pcaddr_in := this.io.ght_pcaddr_in
@@ -53,15 +49,21 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   u_ght_dc.io.ght_dc_inst_in   := this.io.ght_inst_in
 
   val inst_type                 = u_ght_dc.io.ght_dc_inst_type
+  val ght_pack                  = u_ght_dc.io.packet_out
+
+  //==========================================================
+  // Scheduler
+  //==========================================================
+  val u_pmc_sch                 = Module (new GHT_SCH_RR(GHT_SCH_Params (1, params.totalnumber_of_checkers)))
+  u_pmc_sch.io.core_s          := u_ght_cfg.io.pmc_core_s
+  u_pmc_sch.io.core_e          := u_ght_cfg.io.pmc_core_e
+  u_pmc_sch.io.monitor_inst(0) := u_ght_cfg.io.pmc_inst_1
+  u_pmc_sch.io.inst_type       := inst_type
+  val core_d_u_pmc_sch          = u_pmc_sch.io.core_d
+
 
   //==========================================================
   // Output generation
   //==========================================================
-  ght_pack                     := MuxCase(0.U, 
-                                    Array((inst_type === 1.U) -> Cat(u_ght_dc.io.ght_dc_inst_func_opcode, u_ght_dc.io.ght_dc_commit_rd), // load
-                                          (inst_type === 2.U) -> Cat(u_ght_dc.io.ght_dc_inst_func_opcode, u_ght_dc.io.ght_dc_commit_rd)  // store
-                                          )
-                                         ) 
-
-  this.io.ght_packet_out       := Mux((io.ght_mask_in === 1.U), 0.U, ght_pack)
+  this.io.ght_packet_out       := Mux(((io.ght_mask_in === 1.U) | (core_d_u_pmc_sch === 0.U)), 0.U, ght_pack)
 }
