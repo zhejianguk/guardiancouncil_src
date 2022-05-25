@@ -154,6 +154,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     ght.io.ght_alu_in := core.io.alu_2cycle_delay
     ght.io.ght_mask_in := ght_bridge.io.out
     outer.ght_packet_out_SRNode.bundle := ght.io.ght_packet_out
+    outer.ght_packet_dest_SRNode.bundle := ght.io.ght_packet_dest
     core.io.clk_enable_gh := ~(outer.bigcore_hang_in_SKNode.bundle) 
     outer.ghe_event_out_SRNode.bundle := ghe_bridge.io.out
   } else
@@ -162,6 +163,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     // For other cores: no GHT is required, and hence tied-off
     core.io.clk_enable_gh := 1.U // the core is never gated
     outer.ght_packet_out_SRNode.bundle := 0.U
+    outer.ght_packet_dest_SRNode.bundle := 0.U
     outer.ghe_event_out_SRNode.bundle := ghe_bridge.io.out
   }
     

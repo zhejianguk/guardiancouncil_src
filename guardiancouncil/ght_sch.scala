@@ -58,7 +58,7 @@ class GHT_SCH_RR (val params: GHT_SCH_Params) extends Module with HasGHT_SCH_IO
   }
 
   core_dest       := MuxCase(0.U, 
-                      Array((dest =/= 0.U) -> (1.U << dest)
+                      Array((dest =/= 0.U) -> (1.U << (dest - 1.U))
                            ))
 
   io.core_d       := core_dest

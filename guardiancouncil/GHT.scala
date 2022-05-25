@@ -22,6 +22,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_alu_in = Input(UInt(params.width_data.W))
   val ght_inst_in = Input(UInt(32.W))
   val ght_packet_out = Output(UInt(74.W))
+  val ght_packet_dest = Output(UInt(params.width_core_pc.W))
   val ght_mask_in = Input(UInt(1.W))
 }
 
@@ -65,5 +66,6 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   //==========================================================
   // Output generation
   //==========================================================
-  this.io.ght_packet_out       := Mux(((io.ght_mask_in === 1.U) | (core_d_u_pmc_sch === 0.U)), 0.U, ght_pack)
+  io.ght_packet_out       := Mux(((io.ght_mask_in === 1.U) | (core_d_u_pmc_sch === 0.U)), 0.U, ght_pack)
+  io.ght_packet_dest      := core_d_u_pmc_sch
 }
