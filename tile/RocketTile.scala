@@ -142,7 +142,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
 
   val core = Module(new Rocket(outer)(outer.p))
   val ght_bridge = Module(new GH_Bridge(GH_BridgeParams(1)))
-  val ghe_bridge = Module(new GH_Bridge(GH_BridgeParams(2)))
+  val ghe_bridge = Module(new GH_Bridge(GH_BridgeParams(3)))
 
   //===== GuardianCouncil Function: Start ====//
   if (outer.tileParams.hartId == 0) {

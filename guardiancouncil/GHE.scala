@@ -70,7 +70,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doPull                  = (doPop_FirstHalf || doPop_SecondHalf)
     val ghe_status_in           = io.ghe_status_in
     val ghe_status_reg          = RegInit(0x0.U(32.W))
-    val ghe_event_reg           = RegInit(0x0.U(1.W))
+    val ghe_event_reg           = RegInit(0x0.U(2.W))
 
 
     // Check status
@@ -99,7 +99,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doCheckStatus       -> ghe_status_reg,
                                           doMask              -> Cat(bigComp, rs1_val(15, 0))))
     when (doEvent) {
-      ghe_event_reg            := rs1_val(0)
+      ghe_event_reg            := rs1_val(1,0)
     }
     
     ghe_status_reg             := ghe_status_in

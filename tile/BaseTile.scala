@@ -233,10 +233,10 @@ abstract class BaseTile private (val crossing: ClockCrossingType, q: Parameters)
   println("#### Jessica #### Generating GHT **Nodes** on the tile, HartID:", tileParams.hartId, "...!!")
   val ghe_packet_in_SKNode   = BundleBridgeSink[UInt](Some(() => UInt(74.W)))
   val ghe_status_in_SKNode   = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
-  val ghe_event_out_SRNode   = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
+  val ghe_event_out_SRNode   = BundleBridgeSource[UInt](Some(() => UInt(3.W)))
   println("#### Jessica #### Generating GHE **Nodes** on the tile, HartID:", tileParams.hartId, "...!!")
   val bigcore_hang_in_SKNode = BundleBridgeSink[UInt](Some(() => UInt(1.W)))
-  val bigcore_comp_in_SKNode = BundleBridgeSink[UInt](Some(() => UInt(1.W)))
+  val bigcore_comp_in_SKNode = BundleBridgeSink[UInt](Some(() => UInt(2.W)))
   //===== GuardianCouncil Function: End ====//
   
   /** Nodes for connecting NMI interrupt sources and vectors into the tile */
