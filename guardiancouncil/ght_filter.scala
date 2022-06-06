@@ -77,16 +77,14 @@ class GHT_FILTER (val params: GHT_FILTER_Params) extends Module with HasGHT_FILT
                                                       u_ght_rtable.io.ref_inst_sel_d(i), 0.U)
   }
 
-  /* This method reports a combinational loop, which is expected.
-  // We use the mannual method to avoid masking the above error
-  for(i <- 0 to params.totalnumber_of_insts - 1) {
-    dp_sel                                     := dp_sel | inst_sel_d(i)
-    inst_type                                  := inst_type | hit_inst(i)
+  val u_dp_sel_orgate                           = Module (new GH_ORGATE(ORGATEParams (params.totalnumber_of_insts, params.totalnumber_of_insts)))
+  val u_dp_inst_type                            = Module (new GH_ORGATE(ORGATEParams (params.totalnumber_of_insts, params.totalnumber_of_insts)))
+ for(i <- 0 to params.totalnumber_of_insts - 1) {
+    u_dp_sel_orgate.io.in(i)                   := inst_sel_d(i)
+    u_dp_inst_type.io.in(i)                    := hit_inst(i)
   }
-  */
-
-  dp_sel                                       := inst_sel_d(0)|inst_sel_d(1)|inst_sel_d(2)|inst_sel_d(3)|inst_sel_d(4)|inst_sel_d(5)|inst_sel_d(6)|inst_sel_d(7)
-  inst_type                                    := hit_inst(0)|hit_inst(1)|hit_inst(2)|hit_inst(3)|hit_inst(4)|hit_inst(5)|hit_inst(6)|hit_inst(7)
+  dp_sel                                       := u_dp_sel_orgate.io.out
+  inst_type                                    := u_dp_inst_type.io.out
 
   io.ght_ft_inst_type                          := inst_type
 
