@@ -143,6 +143,8 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   val core = Module(new Rocket(outer)(outer.p))
   val ght_bridge = Module(new GH_Bridge(GH_BridgeParams(1)))
   val ghe_bridge = Module(new GH_Bridge(GH_BridgeParams(3)))
+  val ght_cfg_bridge = Module(new GH_Bridge(GH_BridgeParams(32)))
+  val ght_cfg_v_bridge = Module(new GH_Bridge(GH_BridgeParams(1)))
 
   //===== GuardianCouncil Function: Start ====//
   if (outer.tileParams.hartId == 0) {
@@ -153,6 +155,8 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     ght.io.ght_inst_in := core.io.inst
     ght.io.ght_alu_in := core.io.alu_2cycle_delay
     ght.io.ght_mask_in := ght_bridge.io.out
+    ght.io.ght_cfg_in := ght_cfg_bridge.io.out
+    ght.io.ght_cfg_valid := ght_cfg_v_bridge.io.out
     outer.ght_packet_out_SRNode.bundle := ght.io.ght_packet_out
     outer.ght_packet_dest_SRNode.bundle := ght.io.ght_packet_dest
     core.io.clk_enable_gh := ~(outer.bigcore_hang_in_SKNode.bundle) 
@@ -219,6 +223,8 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     cmdRouter.get.io.ghe_status_in := outer.ghe_status_in_SKNode.bundle
     ghe_bridge.io.in := cmdRouter.get.io.ghe_event_out
     ght_bridge.io.in := cmdRouter.get.io.ght_mask_out
+    ght_cfg_bridge.io.in := cmdRouter.get.io.ght_cfg_out
+    ght_cfg_v_bridge.io.in := cmdRouter.get.io.ght_cfg_valid
     outer.ght_status_out_SRNode.bundle := cmdRouter.get.io.ght_status_out
     // For big_core GHT
     cmdRouter.get.io.bigcore_comp := outer.bigcore_comp_in_SKNode.bundle                            

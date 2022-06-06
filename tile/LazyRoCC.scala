@@ -52,6 +52,8 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val ghe_event_out = Output(UInt(3.W))
   val ght_mask_out = Output(UInt(1.W))
   val ght_status_out = Output(UInt(32.W))
+  val ght_cfg_out = Output(UInt(32.W))
+  val ght_cfg_valid = Output(UInt(1.W))
   //===== GuardianCouncil Function: End   ====//
 }
 
@@ -108,6 +110,8 @@ trait HasLazyRoCCModule extends CanHavePTWModule
       cmdRouter.io.ght_mask_in := rocc.module.io.ght_mask_out
       cmdRouter.io.ght_status_in := rocc.module.io.ght_status_out
       cmdRouter.io.ghe_event_in := rocc.module.io.ghe_event_out
+      cmdRouter.io.ght_cfg_in := rocc.module.io.ght_cfg_out
+      cmdRouter.io.ght_cfg_valid_in := rocc.module.io.ght_cfg_valid
       //===== GuardianCouncil Function: End   ====//
     }
 
@@ -425,8 +429,12 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val ghe_event_out = Output(UInt(3.W))
     val ght_mask_out  = Output(UInt(1.W))
     val ght_mask_in = Input(UInt(1.W))
-    val ght_status_out  = Output(UInt(31.W))
-    val ght_status_in = Input(UInt(31.W))
+    val ght_status_out  = Output(UInt(32.W))
+    val ght_status_in = Input(UInt(32.W))
+    val ght_cfg_out = Output(UInt(32.W))
+    val ght_cfg_in = Input(UInt(32.W))
+    val ght_cfg_valid = Output(UInt(1.W))
+    val ght_cfg_valid_in = Input(UInt(1.W))
     //===== GuardianCouncil Function: End   ====//
   }
 
@@ -443,6 +451,8 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   io.ghe_event_out := io.ghe_event_in
   io.ght_mask_out := io.ght_mask_in
   io.ght_status_out := io.ght_status_in
+  io.ght_cfg_out := io.ght_cfg_in
+  io.ght_cfg_valid := io.ght_cfg_valid_in
   //===== GuardianCouncil Function: End   ====//
   assert(PopCount(cmdReadys) <= 1.U,
     "Custom opcode matched for more than one accelerator")
