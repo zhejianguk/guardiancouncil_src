@@ -63,7 +63,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // For big core
     val doBigCheck              = (cmd.fire() && (funct === 6.U))
     val doMask                  = (cmd.fire() && (funct === 6.U) && (rs2_val === 1.U))
-    val doGHT_Cfg               = (cmd.fire() && (funct === 6.U) && (rs2_val === 2.U))
+    val doGHT_Cfg               = (cmd.fire() && (funct === 6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
     val bigComp                 = io.bigcore_comp
 
 

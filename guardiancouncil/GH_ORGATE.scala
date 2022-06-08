@@ -30,7 +30,8 @@ class GH_ORGATE (val params: ORGATEParams) extends Module with HasORGATEIO {
     }
   */
 
-  io.out                                       := io.in(1) |
+  io.out                                       := io.in(0) |
+                                                  io.in(1) |
                                                   io.in(2) |
                                                   io.in(3) |
                                                   io.in(4) |
@@ -44,15 +45,6 @@ class GH_ORGATE (val params: ORGATEParams) extends Module with HasORGATEIO {
                                                   io.in(12)|
                                                   io.in(13)|
                                                   io.in(14)|
-                                                  io.in(15)|
-                                                  io.in(16)|
-                                                  io.in(17)|
-                                                  io.in(18)|
-                                                  io.in(19)|
-                                                  io.in(20)|
-                                                  io.in(21)|
-                                                  io.in(22)|
-                                                  io.in(22)|
-                                                  io.in(23) 
+                                                  io.in(15)
 }
 

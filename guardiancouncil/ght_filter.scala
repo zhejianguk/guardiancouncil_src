@@ -78,13 +78,13 @@ class GHT_FILTER (val params: GHT_FILTER_Params) extends Module with HasGHT_FILT
   }
 
   val u_dp_sel_orgate                           = Module (new GH_ORGATE(ORGATEParams (params.totalnumber_of_insts, params.totalnumber_of_insts)))
-  val u_dp_inst_type                            = Module (new GH_ORGATE(ORGATEParams (params.totalnumber_of_insts, params.totalnumber_of_insts)))
- for(i <- 0 to params.totalnumber_of_insts - 1) {
+  val u_dp_inst_type_orgate                     = Module (new GH_ORGATE(ORGATEParams (params.totalnumber_of_insts, params.totalnumber_of_insts)))
+  for(i <- 0 to params.totalnumber_of_insts - 1) {
     u_dp_sel_orgate.io.in(i)                   := inst_sel_d(i)
-    u_dp_inst_type.io.in(i)                    := hit_inst(i)
+    u_dp_inst_type_orgate.io.in(i)             := hit_inst(i)
   }
   dp_sel                                       := u_dp_sel_orgate.io.out
-  inst_type                                    := u_dp_inst_type.io.out
+  inst_type                                    := u_dp_inst_type_orgate.io.out
 
   io.ght_ft_inst_type                          := inst_type
 
