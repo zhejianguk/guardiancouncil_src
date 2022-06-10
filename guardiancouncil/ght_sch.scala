@@ -8,8 +8,7 @@ import chisel3.experimental.{BaseModule}
 // Parameters
 //==========================================================
 case class GHT_SCH_Params(
-  totalnumber_of_checkers: Int,
-  number_of_monitored_insts: Int
+  totalnumber_of_checkers: Int
 )
 
 //==========================================================
@@ -18,8 +17,7 @@ case class GHT_SCH_Params(
 class GHT_SCH_IO (params: GHT_SCH_Params) extends Bundle {
   val core_s                                    = Input(UInt(4.W))
   val core_e                                    = Input(UInt(4.W))
-  val monitor_inst                              = Input(Vec(params.number_of_monitored_insts, UInt(32.W)))
-  val inst_type                                 = Input(UInt(32.W))
+  val inst_c                                    = Input(UInt(1.W))
   val core_d                                    = Output(UInt(params.totalnumber_of_checkers.W))
 }
 
@@ -38,10 +36,8 @@ class GHT_SCH_RR (val params: GHT_SCH_Params) extends Module with HasGHT_SCH_IO
 {
   var core_dest                                 = WireInit(0.U(params.totalnumber_of_checkers.W))
   var new_packet                                = WireInit(false.B)
-
-  for (i <- 0 to params.number_of_monitored_insts - 1) {
-    new_packet                                  = new_packet | (io.inst_type === io.monitor_inst(i))
-  }
+  new_packet                                    = (io.inst_c === 1.U)
+  
 
   val dest_last                                 = RegInit(0.U(4.W))
   val dest                                      = WireInit(0.U(4.W))
@@ -74,10 +70,8 @@ class GHT_SCH_RRF (val params: GHT_SCH_Params) extends Module with HasGHT_SCH_IO
 {
   var core_dest                                 = WireInit(0.U(params.totalnumber_of_checkers.W))
   var new_packet                                = WireInit(false.B)
-
-  for (i <- 0 to params.number_of_monitored_insts - 1) {
-    new_packet                                  = new_packet | (io.inst_type === io.monitor_inst(i))
-  }
+  new_packet                                    = (io.inst_c === 1.U)
+  
 
   val t_counter                                 = RegInit(0.U(2.W))
   when (new_packet === true.B) {
