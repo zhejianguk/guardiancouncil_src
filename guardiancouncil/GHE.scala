@@ -30,14 +30,14 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // Communication channel
     // Widith: xLen
     // Depth: 256
-    val u_channel               = Module (new GH_FIFO(FIFOParams ((xLen+10), 256))) 
+    val u_channel               = Module (new GH_FIFO(FIFOParams ((xLen+25), 256))) 
 
 
     // Internal signals
     val channel_enq_valid       = WireInit(false.B)
-    val channel_enq_data        = WireInit(0.U((xLen+10).W))
+    val channel_enq_data        = WireInit(0.U((xLen+25).W))
     val channel_deq_ready       = WireInit(false.B)
-    val channel_deq_data        = WireInit(0.U((xLen+10).W))
+    val channel_deq_data        = WireInit(0.U((xLen+25).W))
     val channel_empty           = WireInit(true.B)
     val channel_full            = WireInit(false.B)
     val packet_secondhalf_reg   = RegInit(0.U((xLen).W))
@@ -89,12 +89,12 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Response
     val zeros_channel_status    = WireInit(0.U((xLen-2).W))
-    val zeros_pacekt_first_half = WireInit(0.U(54.W))
+    val zeros_pacekt_first_half = WireInit(0.U(39.W))
 
     rd_val                     := MuxCase(0.U, 
                                     Array(doCheck             -> Cat(zeros_channel_status,    channel_status_wire), 
-                                          doTop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(73,64)),
-                                          doPop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(73,64)),
+                                          doTop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(88,64)),
+                                          doPop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(88,64)),
                                           doTop_SecondHalf    -> channel_deq_data(63,0),
                                           doPop_SecondHalf    -> channel_deq_data(63,0),
                                           doReportEmpty       -> 0x3FF.U,

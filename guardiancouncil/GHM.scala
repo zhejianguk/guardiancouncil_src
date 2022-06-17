@@ -12,7 +12,7 @@ import freechips.rocketchip.diplomacy._
 
 case class GHMParams(
   number_of_little_cores: Int,
-  width_GH_packet: Int, // Default: 202: 3: func; 7: opcode; 64 D, 64 S, 64 S.
+  width_GH_packet: Int, 
   xlen: Int
 )
 
@@ -83,7 +83,7 @@ object GHMCore {
     // Creating nodes for connections.
     val bigcore_hang_SRNode                            = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
     val bigcore_comp_SRNode                            = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
-    val ghm_ght_packet_in_SKNode                       = BundleBridgeSink[UInt](Some(() => UInt(74.W)))
+    val ghm_ght_packet_in_SKNode                       = BundleBridgeSink[UInt](Some(() => UInt((params.width_GH_packet).W)))
     val ghm_ght_packet_dest_SKNode                     = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
 
     val ghm_ght_status_in_SKNode                       = BundleBridgeSink[UInt](Some(() => UInt(32.W)))

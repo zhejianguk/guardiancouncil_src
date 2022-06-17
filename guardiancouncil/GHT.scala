@@ -12,7 +12,8 @@ case class GHTParams(
   width_data: Int,
   totalnumber_of_checkers: Int,
   totaltypes_of_insts: Int,
-  totalnumber_of_ses: Int
+  totalnumber_of_ses: Int,
+  packet_size: Int
 )
 
 //==========================================================
@@ -23,7 +24,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_pcaddr_in                             = Input(UInt(params.width_core_pc.W))
   val ght_alu_in                                = Input(UInt(params.width_data.W))
   val ght_inst_in                               = Input(UInt(32.W))
-  val ght_packet_out                            = Output(UInt(74.W))
+  val ght_packet_out                            = Output(UInt((params.packet_size).W))
   val ght_packet_dest                           = Output(UInt(params.width_core_pc.W))
   val ght_mask_in                               = Input(UInt(1.W))
   val ght_cfg_in                                = Input(UInt(32.W))
@@ -49,7 +50,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   // Filters
   //==========================================================
   // Filter: PMC + Sanitiser
-  val u_ght_filter                               = Module (new GHT_FILTER(GHT_FILTER_Params (params.width_data, params.totaltypes_of_insts)))
+  val u_ght_filter                               = Module (new GHT_FILTER(GHT_FILTER_Params (params.width_data, params.totaltypes_of_insts, params.packet_size)))
   u_ght_filter.io.ght_ft_newcommit_in           := u_ght_cc.io.ght_cc_newcommit_out
   u_ght_filter.io.ght_ft_alu_in                 := this.io.ght_alu_in
   u_ght_filter.io.ght_ft_inst_in                := this.io.ght_inst_in
@@ -67,7 +68,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   // execution path
   // using registers to break the critical path
   val inst_type                                  = RegInit(0.U(params.totaltypes_of_insts.W))
-  val ght_pack                                   = RegInit(0.U(74.W))
+  val ght_pack                                   = RegInit(0.U((params.packet_size).W))
   val inst_index                                 = RegInit(0.U(5.W))
   inst_type                                     := u_ght_filter.io.ght_ft_inst_type
   ght_pack                                      := u_ght_filter.io.packet_out
