@@ -30,7 +30,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // Communication channel
     // Widith: xLen
     // Depth: 256
-    val u_channel               = Module (new GH_FIFO(FIFOParams ((xLen+25), 256))) 
+    val u_channel               = Module (new GH_FIFO(FIFOParams ((xLen+25), 32))) 
 
 
     // Internal signals
@@ -40,6 +40,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val channel_deq_data        = WireInit(0.U((xLen+25).W))
     val channel_empty           = WireInit(true.B)
     val channel_full            = WireInit(false.B)
+    val channel_nearfull        = WireInit(false.B)
     val packet_secondhalf_reg   = RegInit(0.U((xLen).W))
     val channel_warning         = WireInit(0.U(1.W))
 
@@ -49,6 +50,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     channel_deq_data           := u_channel.io.deq_bits
     channel_empty              := u_channel.io.empty
     channel_full               := u_channel.io.full
+    channel_nearfull           := u_channel.io.status_nearfull
     channel_warning            := u_channel.io.status_warning
 
     // Software Funcs
@@ -79,7 +81,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // 0b01: empty
     // 0b10: full
     // 0b00: Not empty, not full.
-    val channel_status_wire     = Cat(channel_full, channel_empty)
+    val channel_status_wire     = Cat(channel_nearfull, channel_full, channel_empty)
 
 
     // Channel Push 
