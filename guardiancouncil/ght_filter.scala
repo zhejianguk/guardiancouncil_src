@@ -39,32 +39,23 @@ trait HasGHT_FILTER_IO extends BaseModule {
 //==========================================================
 class GHT_FILTER (val params: GHT_FILTER_Params) extends Module with HasGHT_FILTER_IO
 {
-
+  val inst                                      = WireInit(0.U(32.W))
   val func                                      = WireInit(0.U(3.W))
   val opcode                                    = WireInit(0.U(7.W))
-  val rd                                        = WireInit(0.U(5.W))
-  val rs1                                       = WireInit(0.U(5.W))
-  val rs2                                       = WireInit(0.U(5.W))
 
 
+  val inst_reg                                  = RegInit(0.U(32.W))
   val func_reg                                  = RegInit(0.U(3.W))
   val opcode_reg                                = RegInit(0.U(7.W))
-  val rd_reg                                    = RegInit(0.U(5.W))
-  val rs1_reg                                   = RegInit(0.U(5.W))
-  val rs2_reg                                   = RegInit(0.U(5.W))
   val dp_1_reg                                  = RegInit(0.U(params.xlen.W))
 
+  inst                                         := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in, 0x0.U)
   func                                         := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in(14, 12), 0x0.U)
   opcode                                       := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in(6,0), 0x0.U)
-  rd                                           := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in(11,7), 0x0.U)
-  rs1                                          := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in(19,15), 0x0.U)
-  rs2                                          := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in(24,20), 0x0.U)
   
+  inst_reg                                     := inst
   func_reg                                     := func
   opcode_reg                                   := opcode
-  rd_reg                                       := rd
-  rs1_reg                                      := rs1
-  rs2_reg                                      := rs2
   dp_1_reg                                     := io.ght_ft_alu_in
 
   val u_ght_ftable                              = Module (new GHT_FTABLE(GHT_FTABLE_Params ()))
@@ -88,19 +79,16 @@ class GHT_FILTER (val params: GHT_FILTER_Params) extends Module with HasGHT_FILT
                                                       1.U << (inst_index - 1.U))
 
   val packet_zeros                              = WireInit(0.U(64.W))
-  val rd_zeros                                  = WireInit(0.U(5.W))
-  val rs1_zeros                                 = WireInit(0.U(5.W))
-  val rs2_zeros                                 = WireInit(0.U(5.W))
 
   io.ght_ft_inst_type                          := inst_type
   io.ght_ft_inst_index                         := inst_index
 
   io.packet_out                                := MuxCase(0.U, 
                                                     Array((dp_sel === 0.U)  -> 0.U,
-                                                          (dp_sel === 1.U)  -> Cat(rs2_zeros, rs1_zeros, rd_zeros, func_reg, opcode_reg, packet_zeros),
-                                                          (dp_sel === 2.U)  -> Cat(rs2_zeros, rs1_zeros, rd_zeros, func_reg, opcode_reg, dp_1_reg),
-                                                          (dp_sel === 3.U)  -> Cat(rs2_zeros, rs1_zeros, rd_reg,   func_reg, opcode_reg, dp_1_reg),
-                                                          (dp_sel === 4.U)  -> Cat(rs2_zeros, rs1_reg,   rd_reg,   func_reg, opcode_reg, dp_1_reg),
+                                                          (dp_sel === 1.U)  -> Cat(inst_reg, packet_zeros),
+                                                          (dp_sel === 2.U)  -> Cat(inst_reg, dp_1_reg),
+                                                          (dp_sel === 3.U)  -> Cat(inst_reg, dp_1_reg),
+                                                          (dp_sel === 4.U)  -> Cat(inst_reg, dp_1_reg)
                                                           )
                                                           ) 
 }

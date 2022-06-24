@@ -46,7 +46,7 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val interrupt = Output(Bool())
   val exception = Input(Bool())
   //===== GuardianCouncil Function: Start ====//
-  val ghe_packet_in = Input(UInt(89.W))
+  val ghe_packet_in = Input(UInt(96.W))
   val ghe_status_in = Input(UInt(32.W))
   val bigcore_comp  = Input(UInt(2.W))
   val ghe_event_out = Output(UInt(3.W))
@@ -422,7 +422,7 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val out = Vec(opcodes.size, Decoupled(new RoCCCommand))
     val busy = Output(Bool())
     //===== GuardianCouncil Function: Start ====//
-    val ghe_packet_in = Input(UInt(89.W))
+    val ghe_packet_in = Input(UInt(96.W))
     val ghe_status_in = Input(UInt(32.W))
     val bigcore_comp  = Input(UInt(2.W))
     val ghe_event_in = Input(UInt(3.W))

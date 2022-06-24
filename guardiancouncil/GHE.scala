@@ -30,14 +30,14 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // Communication channel
     // Widith: xLen
     // Depth: 256
-    val u_channel               = Module (new GH_FIFO(FIFOParams ((xLen+25), 64))) 
+    val u_channel               = Module (new GH_FIFO(FIFOParams ((xLen+32), 32))) 
 
 
     // Internal signals
     val channel_enq_valid       = WireInit(false.B)
-    val channel_enq_data        = WireInit(0.U((xLen+25).W))
+    val channel_enq_data        = WireInit(0.U((xLen+32).W))
     val channel_deq_ready       = WireInit(false.B)
-    val channel_deq_data        = WireInit(0.U((xLen+25).W))
+    val channel_deq_data        = WireInit(0.U((xLen+32).W))
     val channel_empty           = WireInit(true.B)
     val channel_full            = WireInit(false.B)
     val channel_nearfull        = WireInit(false.B)

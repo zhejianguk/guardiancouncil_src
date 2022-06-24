@@ -227,11 +227,11 @@ abstract class BaseTile private (val crossing: ClockCrossingType, q: Parameters)
     resetVectorSinkNode := resetVectorNexusNode := BundleBridgeNameNode("reset_vector")
 
   //===== GuardianCouncil Function: Start ====//
-  val ght_packet_out_SRNode  = BundleBridgeSource[UInt](Some(() => UInt(89.W)))
+  val ght_packet_out_SRNode  = BundleBridgeSource[UInt](Some(() => UInt(96.W)))
   val ght_packet_dest_SRNode = BundleBridgeSource[UInt](Some(() => UInt(32.W)))
   val ght_status_out_SRNode  = BundleBridgeSource[UInt](Some(() => UInt(32.W)))
   println("#### Jessica #### Generating GHT **Nodes** on the tile, HartID:", tileParams.hartId, "...!!")
-  val ghe_packet_in_SKNode   = BundleBridgeSink[UInt](Some(() => UInt(89.W)))
+  val ghe_packet_in_SKNode   = BundleBridgeSink[UInt](Some(() => UInt(96.W)))
   val ghe_status_in_SKNode   = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
   val ghe_event_out_SRNode   = BundleBridgeSource[UInt](Some(() => UInt(3.W)))
   println("#### Jessica #### Generating GHE **Nodes** on the tile, HartID:", tileParams.hartId, "...!!")
