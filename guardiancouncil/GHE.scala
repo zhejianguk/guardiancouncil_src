@@ -56,12 +56,12 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // Software Funcs
     val doCheck                 = (cmd.fire() && (funct === 0.U))
     val doEvent                 = (cmd.fire() && (funct === 1.U))
-    val doTop_FirstHalf         = (cmd.fire() && (funct === 2.U) && !channel_empty)
-    val doTop_SecondHalf        = (cmd.fire() && (funct === 4.U) && !channel_empty)
-    val doPop_SecondHalf        = (cmd.fire() && (funct === 5.U) && !channel_empty)
-    val doReportEmpty           = (cmd.fire() && ((funct === 2.U) || (funct === 3.U)) && channel_empty)
     val doCheckBigStatus        = (cmd.fire() && (funct === 7.U) && (rs2_val === 0.U))
     val doCheckAggStatus        = (cmd.fire() && (funct === 7.U) && (rs2_val === 1.U))
+    val doTop_FirstHalf         = (cmd.fire() && (funct === 0x0A.U) && !channel_empty)
+    val doPop_FirstHalf         = (cmd.fire() && (funct === 0x0B.U) && !channel_empty)
+    val doTop_SecondHalf        = (cmd.fire() && (funct === 0x0C.U) && !channel_empty)
+    val doPop_SecondHalf        = (cmd.fire() && (funct === 0x0D.U) && !channel_empty)
     // For big core
     val doBigCheck              = (cmd.fire() && (funct === 6.U))
     val doMask                  = (cmd.fire() && (funct === 6.U) && (rs2_val === 1.U))
@@ -71,7 +71,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     val ghe_packet_in           = io.ghe_packet_in
     val doPush                  = (ghe_packet_in(73,64) =/= 0.U) && !channel_full
-    val doPull                  = doPop_SecondHalf
+    val doPull                  = doPop_FirstHalf || doPop_SecondHalf
     val ghe_status_in           = io.ghe_status_in
     val ghe_status_reg          = RegInit(0x0.U(32.W))
     val ghe_event_reg           = RegInit(0x0.U(2.W))
@@ -91,14 +91,14 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Response
     val zeros_channel_status    = WireInit(0.U((xLen-2).W))
-    val zeros_pacekt_first_half = WireInit(0.U(39.W))
+    val zeros_pacekt_first_half = WireInit(0.U(32.W))
 
     rd_val                     := MuxCase(0.U, 
                                     Array(doCheck             -> Cat(zeros_channel_status,    channel_status_wire), 
-                                          doTop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(88,64)),
+                                          doTop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(95,64)),
+                                          doPop_FirstHalf     -> Cat(zeros_pacekt_first_half, channel_deq_data(95,64)),
                                           doTop_SecondHalf    -> channel_deq_data(63,0),
                                           doPop_SecondHalf    -> channel_deq_data(63,0),
-                                          doReportEmpty       -> 0x3FF.U,
                                           doCheckBigStatus    -> ghe_status_reg,
                                           doCheckAggStatus    -> 0x777.U,
                                           doBigCheck          -> Cat(bigComp, rs1_val(15, 0))))
