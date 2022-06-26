@@ -223,16 +223,20 @@ trait HasTileNotificationSinks { this: LazyModule =>
 
 //===== GuardianCouncil Function: Start ====//
 trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
-  val tile_ght_packet_out_EPNode  = BundleBridgeEphemeralNode[UInt]()
-  val tile_ght_packet_dest_EPNode = BundleBridgeEphemeralNode[UInt]()
-  val tile_ght_status_out_EPNode  = BundleBridgeEphemeralNode[UInt]()
+  val tile_ght_packet_out_EPNode                 = BundleBridgeEphemeralNode[UInt]()
+  val tile_ght_packet_dest_EPNode                = BundleBridgeEphemeralNode[UInt]()
+  val tile_ght_status_out_EPNode                 = BundleBridgeEphemeralNode[UInt]()
 
-  var tile_ghe_event_out_EPNodes  = Seq[BundleBridgeEphemeralNode[UInt]]()
-  var tile_ghe_packet_in_EPNodes  = Seq[BundleBridgeEphemeralNode[UInt]]()
-  var tile_ghe_status_in_EPNodes  = Seq[BundleBridgeEphemeralNode[UInt]]()
+  var tile_ghe_event_out_EPNodes                 = Seq[BundleBridgeEphemeralNode[UInt]]()
+  var tile_ghe_packet_in_EPNodes                 = Seq[BundleBridgeEphemeralNode[UInt]]()
+  var tile_ghe_status_in_EPNodes                 = Seq[BundleBridgeEphemeralNode[UInt]]()
 
-  val tile_bigcore_hang_EPNode    = BundleBridgeEphemeralNode[UInt]()
-  val tile_bigcore_comp_EPNode    = BundleBridgeEphemeralNode[UInt]()
+  val tile_bigcore_hang_EPNode                   = BundleBridgeEphemeralNode[UInt]()
+  val tile_bigcore_comp_EPNode                   = BundleBridgeEphemeralNode[UInt]()
+
+  var tile_agg_packet_out_EPNodes                = Seq[BundleBridgeEphemeralNode[UInt]]()
+  var tile_agg_buffer_full_in_EPNodes            = Seq[BundleBridgeEphemeralNode[UInt]]()
+  var tile_agg_core_full_out_EPNodes             = Seq[BundleBridgeEphemeralNode[UInt]]()
 }
 //===== GuardianCouncil Function: End ======//
 
@@ -432,6 +436,19 @@ trait CanAttachTile {
     val tile_ghe_event_out_EPNode = BundleBridgeEphemeralNode[UInt]()
     context.tile_ghe_event_out_EPNodes = context.tile_ghe_event_out_EPNodes :+ tile_ghe_event_out_EPNode
     tile_ghe_event_out_EPNode := domain.tile.ghe_event_out_SRNode
+
+    val tile_agg_packet_out_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_agg_packet_out_EPNodes = context.tile_agg_packet_out_EPNodes :+ tile_agg_packet_out_EPNode
+    tile_agg_packet_out_EPNode := domain.tile.agg_packet_out_SRNode
+
+    val tile_agg_buffer_full_in_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_agg_buffer_full_in_EPNodes = context.tile_agg_buffer_full_in_EPNodes :+ tile_agg_buffer_full_in_EPNode
+    domain.tile.agg_buffer_full_in_SKNode := tile_agg_buffer_full_in_EPNode
+
+    val tile_agg_core_full_out_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_agg_core_full_out_EPNodes = context.tile_agg_core_full_out_EPNodes :+ tile_agg_core_full_out_EPNode
+    tile_agg_core_full_out_EPNode := domain.tile.agg_core_full_SRNode
+
     println("#### Jessica #### Connecting GHE **Nodes** on the sub-system, HartID:", tileParams.hartId, "...!!")
   }
   //===== GuardianCouncil Function: End ======//
