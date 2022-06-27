@@ -46,7 +46,7 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val interrupt = Output(Bool())
   val exception = Input(Bool())
   //===== GuardianCouncil Function: Start ====//
-  val ghe_packet_in = Input(UInt(96.W))
+  val ghe_packet_in = Input(UInt(128.W))
   val ghe_status_in = Input(UInt(32.W))
   val bigcore_comp  = Input(UInt(2.W))
   val ghe_event_out = Output(UInt(3.W))
@@ -54,6 +54,10 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val ght_status_out = Output(UInt(32.W))
   val ght_cfg_out = Output(UInt(32.W))
   val ght_cfg_valid = Output(UInt(1.W))
+
+  val agg_packet_out = Output(UInt(128.W))
+  val agg_buffer_full = Input(UInt(1.W))
+  val agg_core_full = Output(UInt(1.W))
   //===== GuardianCouncil Function: End   ====//
 }
 
@@ -112,6 +116,10 @@ trait HasLazyRoCCModule extends CanHavePTWModule
       cmdRouter.io.ghe_event_in := rocc.module.io.ghe_event_out
       cmdRouter.io.ght_cfg_in := rocc.module.io.ght_cfg_out
       cmdRouter.io.ght_cfg_valid_in := rocc.module.io.ght_cfg_valid
+
+      cmdRouter.io.agg_packet_in := rocc.module.io.agg_packet_out
+      rocc.module.io.agg_buffer_full := cmdRouter.io.agg_buffer_full
+      cmdRouter.io.agg_core_full_in := rocc.module.io.agg_core_full
       //===== GuardianCouncil Function: End   ====//
     }
 
@@ -422,7 +430,7 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val out = Vec(opcodes.size, Decoupled(new RoCCCommand))
     val busy = Output(Bool())
     //===== GuardianCouncil Function: Start ====//
-    val ghe_packet_in = Input(UInt(96.W))
+    val ghe_packet_in = Input(UInt(128.W))
     val ghe_status_in = Input(UInt(32.W))
     val bigcore_comp  = Input(UInt(2.W))
     val ghe_event_in = Input(UInt(3.W))
@@ -435,6 +443,13 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val ght_cfg_in = Input(UInt(32.W))
     val ght_cfg_valid = Output(UInt(1.W))
     val ght_cfg_valid_in = Input(UInt(1.W))
+
+    val agg_packet_out = Output(UInt(128.W))
+    val agg_packet_in  = Input(UInt(128.W))
+    val agg_buffer_full = Input(UInt(1.W))
+    val agg_core_full_out = Output(UInt(1.W))
+    val agg_core_full_in = Input(UInt(1.W))
+
     //===== GuardianCouncil Function: End   ====//
   }
 
@@ -453,6 +468,9 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   io.ght_status_out := io.ght_status_in
   io.ght_cfg_out := io.ght_cfg_in
   io.ght_cfg_valid := io.ght_cfg_valid_in
+
+  io.agg_packet_out := io.agg_packet_in
+  io.agg_core_full_out := io.agg_core_full_in
   //===== GuardianCouncil Function: End   ====//
   assert(PopCount(cmdReadys) <= 1.U,
     "Custom opcode matched for more than one accelerator")

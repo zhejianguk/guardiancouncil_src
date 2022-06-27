@@ -149,10 +149,10 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   //===== GuardianCouncil Function: Start ====//
   if (outer.tileParams.hartId == 0) {
     println("#### Jessica #### Generating GHT for the big core, HartID: ", outer.rocketParams.hartId, "...!!!")
-    val ght = Module(new GHT(GHTParams(vaddrBitsExtended, p(XLen), 32, 32, 16, 96)))    // revisit: set 32 as the total number of checkers.
+    val ght = Module(new GHT(GHTParams(vaddrBitsExtended, p(XLen), 32, 32, 16, 128)))    // revisit: set 32 as the total number of checkers.
                                                                                         // revisit: total types of insts is 32
                                                                                         // revisit: total number of SEs is 16 
-                                                                                        // revisit: packet size: 96 bits
+                                                                                        // revisit: packet size: 128 bits
     ght.io.ght_pcaddr_in := core.io.pc
     ght.io.resetvector_in := outer.resetVectorSinkNode.bundle
     ght.io.ght_inst_in := core.io.inst
@@ -229,6 +229,12 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     ght_cfg_bridge.io.in := cmdRouter.get.io.ght_cfg_out
     ght_cfg_v_bridge.io.in := cmdRouter.get.io.ght_cfg_valid
     outer.ght_status_out_SRNode.bundle := cmdRouter.get.io.ght_status_out
+
+    // agg
+    outer.agg_packet_out_SRNode.bundle := cmdRouter.get.io.agg_packet_out
+    cmdRouter.get.io.agg_buffer_full := outer.agg_buffer_full_in_SKNode.bundle
+    outer.agg_core_full_SRNode.bundle := cmdRouter.get.io.agg_core_full_out
+
     // For big_core GHT
     cmdRouter.get.io.bigcore_comp := outer.bigcore_comp_in_SKNode.bundle                            
     //===== GuardianCouncil Function: End   ====//
