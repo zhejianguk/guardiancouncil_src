@@ -42,6 +42,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val channel_full            = WireInit(false.B)
     val channel_nearfull        = WireInit(false.B)
     val channel_warning         = WireInit(0.U(1.W))
+    val channel_sch_na          = RegInit(0.U(1.W))
 
     u_channel.io.enq_valid     := channel_enq_valid
     u_channel.io.enq_bits      := channel_enq_data
@@ -62,6 +63,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doPop_SecondHalf        = (cmd.fire() && (funct === 0x0D.U) && !channel_empty)
     val doCheckAgg              = (cmd.fire() && (funct === 0x10.U))
     val doPushAgg               = (cmd.fire() && (funct === 0x11.U) && !io.agg_buffer_full)
+    val doCheckSch              = (cmd.fire() && (funct === 0x20.U))
+    val doRefreshSch            = (cmd.fire() && (funct === 0x21.U))
 
     // For big core
     val doBigCheck              = (cmd.fire() && (funct === 6.U))
@@ -82,7 +85,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // 0b01: empty
     // 0b10: full
     // 0b00: Not empty, not full.
-    val channel_status_wire     = Cat(channel_nearfull, channel_full, channel_empty)
+    val channel_status_wire     = Cat(channel_full, channel_empty)
 
 
     // Channel Push 
@@ -92,8 +95,10 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Response
     val zeros_channel_status    = WireInit(0.U((xLen-2).W))
+    val zeros_63bits            = WireInit(0.U(62.W))
     val zeros_62bits            = WireInit(0.U(62.W))
     val zeros_1bit              = WireInit(0.U(1.W))
+
     rd_val                     := MuxCase(0.U, 
                                     Array(doCheck             -> Cat(zeros_channel_status,    channel_status_wire), 
                                           doTop_FirstHalf     -> channel_deq_data(127,64),
@@ -102,9 +107,20 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doPop_SecondHalf    -> channel_deq_data(63,0),
                                           doCheckBigStatus    -> ghe_status_reg,
                                           doCheckAgg          -> Cat(zeros_62bits, io.agg_buffer_full, zeros_1bit),
+                                          doCheckSch          -> Cat(zeros_63bits, channel_sch_na),
                                           doBigCheck          -> Cat(bigComp, rs1_val(15, 0))))
     when (doEvent) {
       ghe_event_reg            := rs1_val(1,0)
+    }
+
+    when (channel_nearfull) {
+      channel_sch_na           := 1.U
+    } otherwise {
+      when (io.ght_sch_refresh === 1.U){
+        channel_sch_na         := 0.U
+      } otherwise {
+        channel_sch_na         := channel_sch_na
+      }
     }
     
     ghe_status_reg             := ghe_status_in
@@ -134,4 +150,5 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     io.agg_packet_out          := Mux(doPushAgg, Cat(rs1_val, rs2_val), 0.U);
     io.agg_core_full           := channel_full
+    io.ght_sch_dorefresh       := Mux(doRefreshSch, rs1_val(31, 0), 0.U)
 }

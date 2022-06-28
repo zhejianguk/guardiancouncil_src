@@ -20,6 +20,7 @@ class GHT_SE_IO (params: GHT_SE_Params) extends Bundle {
 
   val inst_c                                    = Input(UInt(1.W))
   val core_d                                    = Output(UInt(params.totalnumber_of_checkers.W))
+  val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W))
 }
 
 
@@ -60,6 +61,9 @@ class GHT_SE (val params: GHT_SE_Params) extends Module with HasGHT_SE_IO
   u_sch_rr.io.core_s                           := sch_start_id
   u_sch_rr.io.core_e                           := sch_end_id
   u_sch_rr.io.inst_c                           := Mux(sch_policy === 1.U, io.inst_c, 0.U)
+  for (i <- 0 to params.totalnumber_of_checkers - 1) {
+    u_sch_rr.io.core_na(i)                     := io.core_na(i)
+  }
   core_d_rr                                    := u_sch_rr.io.core_d
 
   // round-robin-4 scheduler
@@ -69,10 +73,25 @@ class GHT_SE (val params: GHT_SE_Params) extends Module with HasGHT_SE_IO
   u_sch_rrf.io.core_e                          := sch_end_id
   u_sch_rrf.io.inst_c                          := Mux(sch_policy === 2.U, io.inst_c, 0.U)
   core_d_rrf                                   := u_sch_rrf.io.core_d
+  for (i <- 0 to params.totalnumber_of_checkers - 1) {
+    u_sch_rrf.io.core_na(i)                    := io.core_na(i)
+  }
+
+  // round-robin-4 scheduler
+  val u_sch_fp                                  = Module (new GHT_SCH_FP(GHT_SCH_Params (params.totalnumber_of_checkers)))
+  val core_d_fp                                 = WireInit(0.U(params.totalnumber_of_checkers.W))
+  u_sch_fp.io.core_s                           := sch_start_id
+  u_sch_fp.io.core_e                           := sch_end_id
+  u_sch_fp.io.inst_c                           := Mux(sch_policy === 3.U, io.inst_c, 0.U)
+  for (i <- 0 to params.totalnumber_of_checkers - 1) {
+    u_sch_fp.io.core_na(i)                     := io.core_na(i)
+  }
+  core_d_fp                                    := u_sch_fp.io.core_d
 
 
   io.core_d                                    := MuxCase(0.U, 
                                                   Array((sch_policy === 1.U) -> core_d_rr,
                                                         (sch_policy === 2.U) -> core_d_rrf,
+                                                        (sch_policy === 3.U) -> core_d_fp,
                                                         ))
 }

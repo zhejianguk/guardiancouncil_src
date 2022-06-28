@@ -237,6 +237,12 @@ trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
   var tile_agg_packet_out_EPNodes                = Seq[BundleBridgeEphemeralNode[UInt]]()
   var tile_agg_buffer_full_in_EPNodes            = Seq[BundleBridgeEphemeralNode[UInt]]()
   var tile_agg_core_full_out_EPNodes             = Seq[BundleBridgeEphemeralNode[UInt]]()
+
+  var tile_ght_sch_na_out_EPNodes                = Seq[BundleBridgeEphemeralNode[UInt]]()
+  var tile_ghe_sch_refresh_in_EPNodes            = Seq[BundleBridgeEphemeralNode[UInt]]()
+
+  val tile_sch_na_EPNode                         = BundleBridgeEphemeralNode[UInt]()
+  var tile_ght_sch_dorefresh_EPNodes             = Seq[BundleBridgeEphemeralNode[UInt]]()
 }
 //===== GuardianCouncil Function: End ======//
 
@@ -409,6 +415,7 @@ trait CanAttachTile {
       context.tile_ght_status_out_EPNode  := domain.tile.ght_status_out_SRNode
       domain.tile.bigcore_hang_in_SKNode  := context.tile_bigcore_hang_EPNode
       domain.tile.bigcore_comp_in_SKNode  := context.tile_bigcore_comp_EPNode
+      domain.tile.sch_na_inSKNode         := context.tile_sch_na_EPNode
       println("#### Jessica #### Connecting GHT **Nodes** on the sub-system, HartID:", tileParams.hartId, "...!!")
     } else {
       val useless_bigcore_hang_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
@@ -416,11 +423,13 @@ trait CanAttachTile {
       val useless_packet_SKNode            = BundleBridgeSink[UInt](Some(() => UInt(128.W)))
       val useless_packet_dest_SKNode       = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
       val useless_status_SKNode            = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
+      val useless_sch_na_inSKNode          = BundleBridgeSource[UInt](Some(() => UInt(7.W)))
       useless_packet_SKNode               := domain.tile.ght_packet_out_SRNode
       useless_packet_dest_SKNode          := domain.tile.ght_packet_dest_SRNode
       useless_status_SKNode               := domain.tile.ght_status_out_SRNode
       domain.tile.bigcore_hang_in_SKNode  := useless_bigcore_hang_SRNode
       domain.tile.bigcore_comp_in_SKNode  := useless_bigcore_comp_SRNode
+      domain.tile.sch_na_inSKNode         := useless_sch_na_inSKNode
       println("#### Jessica #### Tieing off GHT **Nodes** on the sub-system, HartID:", tileParams.hartId,"...!!")
     }
 
@@ -449,10 +458,23 @@ trait CanAttachTile {
     context.tile_agg_core_full_out_EPNodes = context.tile_agg_core_full_out_EPNodes :+ tile_agg_core_full_out_EPNode
     tile_agg_core_full_out_EPNode := domain.tile.agg_core_full_SRNode
 
+    val tile_ght_sch_na_out_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_ght_sch_na_out_EPNodes = context.tile_ght_sch_na_out_EPNodes :+ tile_ght_sch_na_out_EPNode
+    tile_ght_sch_na_out_EPNode := domain.tile.ght_sch_na_out_SRNode
+
+    val tile_ghe_sch_refresh_in_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_ghe_sch_refresh_in_EPNodes = context.tile_ghe_sch_refresh_in_EPNodes :+ tile_ghe_sch_refresh_in_EPNode
+    domain.tile.ghe_sch_refresh_in_SKNode := tile_ghe_sch_refresh_in_EPNode
+
+    val tile_ght_sch_dorefresh_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_ght_sch_dorefresh_EPNodes = context.tile_ght_sch_dorefresh_EPNodes :+ tile_ght_sch_dorefresh_EPNode
+    tile_ght_sch_dorefresh_EPNode := domain.tile.ght_sch_dorefresh_SRNode
+
     println("#### Jessica #### Connecting GHE **Nodes** on the sub-system, HartID:", tileParams.hartId, "...!!")
   }
   //===== GuardianCouncil Function: End ======//
 }
+
 
 /** InstantiatesTiles adds a Config-urable sequence of tiles of any type
   *   to the subsystem class into which it is mixed.

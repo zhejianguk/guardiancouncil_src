@@ -164,9 +164,9 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     outer.ght_packet_dest_SRNode.bundle := ght.io.ght_packet_dest
     core.io.clk_enable_gh := ~(outer.bigcore_hang_in_SKNode.bundle) 
     outer.ghe_event_out_SRNode.bundle := ghe_bridge.io.out
+    ght.io.core_na := outer.sch_na_inSKNode.bundle
   } else
   { // Other cores:
-
     // For other cores: no GHT is required, and hence tied-off
     core.io.clk_enable_gh := 1.U // the core is never gated
     outer.ght_packet_out_SRNode.bundle := 0.U
@@ -234,9 +234,11 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     outer.agg_packet_out_SRNode.bundle := cmdRouter.get.io.agg_packet_out
     cmdRouter.get.io.agg_buffer_full := outer.agg_buffer_full_in_SKNode.bundle
     outer.agg_core_full_SRNode.bundle := cmdRouter.get.io.agg_core_full_out
-
+    outer.ght_sch_na_out_SRNode.bundle := cmdRouter.get.io.ght_sch_na_out
+    cmdRouter.get.io.ght_sch_refresh := outer.ghe_sch_refresh_in_SKNode.bundle
     // For big_core GHT
-    cmdRouter.get.io.bigcore_comp := outer.bigcore_comp_in_SKNode.bundle                            
+    cmdRouter.get.io.bigcore_comp := outer.bigcore_comp_in_SKNode.bundle
+    outer.ght_sch_dorefresh_SRNode.bundle := cmdRouter.get.io.ght_sch_dorefresh_out                           
     //===== GuardianCouncil Function: End   ====//
   }
 

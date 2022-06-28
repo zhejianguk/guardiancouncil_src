@@ -29,6 +29,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_mask_in                               = Input(UInt(1.W))
   val ght_cfg_in                                = Input(UInt(32.W))
   val ght_cfg_valid                             = Input(UInt(1.W))
+  val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W)) 
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -127,6 +128,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   for (i <- 0 to params.totalnumber_of_ses - 1) {
     core_d(i)                                   := u_ses(i).core_d
     u_ses(i).inst_c                             := inst_c(i)
+    u_ses(i).core_na                            := io.core_na
   }
 
   val u_core_d_orgate                            = Module (new GH_ORGATE(ORGATEParams (params.totalnumber_of_checkers, params.totalnumber_of_ses)))

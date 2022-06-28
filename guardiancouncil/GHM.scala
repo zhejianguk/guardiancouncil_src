@@ -32,6 +32,11 @@ class GHMIO(params: GHMParams) extends Bundle {
   val agg_buffer_full                            = Output(Vec(params.number_of_little_cores, UInt(1.W)))
   val agg_packet_out                             = Output(UInt(params.width_GH_packet.W))
   val agg_core_full                              = Input(UInt(1.W))
+
+  val sch_na_in                                  = Input(Vec(params.number_of_little_cores, UInt(1.W)))
+  val sch_na_out                                 = Output(UInt(params.number_of_little_cores.W))
+  val sch_do_refresh                             = Input(UInt(32.W))
+  val sch_refresh_out                            = Output(Vec(params.number_of_little_cores, UInt(1.W)))
 }
 
 trait HasGHMIO extends BaseModule {
@@ -54,6 +59,14 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
   var warning                                    = WireInit(0.U(1.W))
   var complete                                   = WireInit(1.U(1.W))
   var release                                    = WireInit(1.U(1.W))
+  var sch_na                                     = (0.U(params.number_of_little_cores.W))
+
+  val sch_na_in_wires                            = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(params.number_of_little_cores.W))))
+  val zeros_nbit                                 = WireInit(0.U(params.number_of_little_cores.W))
+
+
+
+  
   
   // Routing
   for (i <- 0 to params.number_of_little_cores - 1) {
@@ -65,6 +78,8 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
   for(i <- 0 to params.number_of_little_cores - 1) {
     io.ghm_packet_outs(i)                      := packet_out_wires(i)
     io.ghm_status_outs(i)                      := io.ghm_status_in
+    sch_na_in_wires(i)                         := Cat(zeros_nbit, io.sch_na_in(i))
+    io.sch_refresh_out(i)                      := io.sch_do_refresh(i)
   }
 
 
@@ -72,10 +87,12 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
     warning                                     = warning | io.ghe_event_in(i)(0)
     complete                                    = complete & io.ghe_event_in(i)(1)
     release                                     = release & io.ghe_event_in(i)(2)
+    sch_na                                      = sch_na | (sch_na_in_wires(i) << i)
   }
 
   io.bigcore_hang                              := warning
   io.bigcore_comp                              := Cat(release, complete)
+  io.sch_na_out                                := sch_na
 
   // Agg
   val u_agg                                     = Module (new GHT_AGG(GHM_AGG_Params(params.number_of_little_cores, params.width_GH_packet)))
@@ -133,6 +150,10 @@ object GHMCore {
     var agg_buffer_full_out_SRNodes                = Seq[BundleBridgeSource[UInt]]()
     var agg_core_full_in_SKNodes                   = Seq[BundleBridgeSink[UInt]]()
 
+    var ghm_ght_sch_na_in_SKNodes                  = Seq[BundleBridgeSink[UInt]]()
+    var ghm_ghe_sch_refresh_out_SRNodes            = Seq[BundleBridgeSource[UInt]]()
+    var ghm_ght_sch_dorefresh_in_SKNodes           = Seq[BundleBridgeSink[UInt]]()
+
     for (i <- 0 to number_of_ghes-1) {
       val agg_packet_in_SKNode                     = BundleBridgeSink[UInt]()
       agg_packet_in_SKNodes                        = agg_packet_in_SKNodes :+ agg_packet_in_SKNode
@@ -145,7 +166,22 @@ object GHMCore {
       val agg_core_full_in_SKNode                  = BundleBridgeSink[UInt]()
       agg_core_full_in_SKNodes                     = agg_core_full_in_SKNodes :+ agg_core_full_in_SKNode
       agg_core_full_in_SKNodes(i)                 := subsystem.tile_agg_core_full_out_EPNodes(i)
+
+      val ghm_ght_sch_na_in_SKNode                 = BundleBridgeSink[UInt]()
+      ghm_ght_sch_na_in_SKNodes                    = ghm_ght_sch_na_in_SKNodes :+ ghm_ght_sch_na_in_SKNode
+      ghm_ght_sch_na_in_SKNodes(i)                := subsystem.tile_ght_sch_na_out_EPNodes(i)
+
+      val ghm_ghe_sch_refresh_out_SRNode           = BundleBridgeSource[UInt]()
+      ghm_ghe_sch_refresh_out_SRNodes              = ghm_ghe_sch_refresh_out_SRNodes :+ ghm_ghe_sch_refresh_out_SRNode
+      subsystem.tile_ghe_sch_refresh_in_EPNodes(i):= ghm_ghe_sch_refresh_out_SRNodes(i)
+
+      val ghm_ght_sch_dorefresh_in_SKNode          = BundleBridgeSink[UInt]()
+      ghm_ght_sch_dorefresh_in_SKNodes             = ghm_ght_sch_dorefresh_in_SKNodes :+ ghm_ght_sch_dorefresh_in_SKNode
+      ghm_ght_sch_dorefresh_in_SKNodes(i)         := subsystem.tile_ght_sch_dorefresh_EPNodes(i)
     }
+
+    val sch_na_SRNode                              = BundleBridgeSource[UInt](Some(() => UInt(params.number_of_little_cores.W)))
+    subsystem.tile_sch_na_EPNode                  := sch_na_SRNode
 
 
     
@@ -166,6 +202,7 @@ object GHMCore {
             if ( i == (params.id_agg - 1)) {
               ghm_ghe_packet_out_SRNodes(i).bundle:= ghm.io.agg_packet_out
               ghm.io.agg_core_full                := agg_core_full_in_SKNodes(i).bundle
+              ghm.io.sch_do_refresh               := ghm_ght_sch_dorefresh_in_SKNodes(i).bundle
             }    
             else {
               ghm_ghe_packet_out_SRNodes(i).bundle:= ghm.io.ghm_packet_outs(i-1)
@@ -174,11 +211,14 @@ object GHMCore {
           ghm.io.ghe_event_in(i-1)                := ghm_ghe_event_in_SKNodes(i).bundle
           ghm.io.agg_packet_in(i-1)               := agg_packet_in_SKNodes(i).bundle
           agg_buffer_full_out_SRNodes(i).bundle   := ghm.io.agg_buffer_full(i-1)
+          ghm.io.sch_na_in(i-1)                   := ghm_ght_sch_na_in_SKNodes(i).bundle
+          ghm_ghe_sch_refresh_out_SRNodes(i).bundle:= ghm.io.sch_refresh_out(i-1)
         }
       }
 
       bigcore_hang_SRNode.bundle                  := ghm.io.bigcore_hang
       bigcore_comp_SRNode.bundle                  := ghm.io.bigcore_comp
+      sch_na_SRNode.bundle                        := ghm.io.sch_na_out
     }
   }
 }
