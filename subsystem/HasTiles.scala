@@ -423,7 +423,7 @@ trait CanAttachTile {
       val useless_packet_SKNode            = BundleBridgeSink[UInt](Some(() => UInt(128.W)))
       val useless_packet_dest_SKNode       = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
       val useless_status_SKNode            = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
-      val useless_sch_na_inSKNode          = BundleBridgeSource[UInt](Some(() => UInt(7.W)))
+      val useless_sch_na_inSKNode          = BundleBridgeSource[UInt](Some(() => UInt(16.W)))
       useless_packet_SKNode               := domain.tile.ght_packet_out_SRNode
       useless_packet_dest_SKNode          := domain.tile.ght_packet_dest_SRNode
       useless_status_SKNode               := domain.tile.ght_status_out_SRNode

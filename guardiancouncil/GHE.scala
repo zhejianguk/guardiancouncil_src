@@ -56,7 +56,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // Software Funcs
     val doCheck                 = (cmd.fire() && (funct === 0x00.U))
     val doEvent                 = (cmd.fire() && (funct === 0x01.U))
-    val doCheckBigStatus        = (cmd.fire() && (funct === 0x07.U) && (rs2_val === 0.U))
+    val doCheckBigStatus        = (cmd.fire() && (funct === 0x07.U))
     val doTop_FirstHalf         = (cmd.fire() && (funct === 0x0A.U) && !channel_empty)
     val doPop_FirstHalf         = (cmd.fire() && (funct === 0x0B.U) && !channel_empty)
     val doTop_SecondHalf        = (cmd.fire() && (funct === 0x0C.U) && !channel_empty)
@@ -95,7 +95,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Response
     val zeros_channel_status    = WireInit(0.U((xLen-2).W))
-    val zeros_63bits            = WireInit(0.U(62.W))
+    val zeros_63bits            = WireInit(0.U(63.W))
     val zeros_62bits            = WireInit(0.U(62.W))
     val zeros_1bit              = WireInit(0.U(1.W))
 
@@ -151,4 +151,5 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     io.agg_packet_out          := Mux(doPushAgg, Cat(rs1_val, rs2_val), 0.U);
     io.agg_core_full           := channel_full
     io.ght_sch_dorefresh       := Mux(doRefreshSch, rs1_val(31, 0), 0.U)
+    io.ght_sch_na              := channel_sch_na
 }

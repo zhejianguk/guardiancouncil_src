@@ -55,6 +55,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   u_ght_filter.io.ght_ft_newcommit_in           := u_ght_cc.io.ght_cc_newcommit_out
   u_ght_filter.io.ght_ft_alu_in                 := this.io.ght_alu_in
   u_ght_filter.io.ght_ft_inst_in                := this.io.ght_inst_in
+  u_ght_filter.io.ght_ft_pc_in                  := this.io.ght_pcaddr_in
 
   // configuration path
   val ght_cfg_in_ft_filter                       = WireInit(0.U(32.W))

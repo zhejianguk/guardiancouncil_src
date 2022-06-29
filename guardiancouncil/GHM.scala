@@ -59,10 +59,10 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
   var warning                                    = WireInit(0.U(1.W))
   var complete                                   = WireInit(1.U(1.W))
   var release                                    = WireInit(1.U(1.W))
-  var sch_na                                     = (0.U(params.number_of_little_cores.W))
+  var sch_na                                     = WireInit(0.U(params.number_of_little_cores.W))
 
   val sch_na_in_wires                            = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(params.number_of_little_cores.W))))
-  val zeros_nbit                                 = WireInit(0.U(params.number_of_little_cores.W))
+  val zeros_nbit                                 = WireInit(0.U((params.number_of_little_cores - 1).W))
 
 
 
@@ -180,7 +180,7 @@ object GHMCore {
       ghm_ght_sch_dorefresh_in_SKNodes(i)         := subsystem.tile_ght_sch_dorefresh_EPNodes(i)
     }
 
-    val sch_na_SRNode                              = BundleBridgeSource[UInt](Some(() => UInt(params.number_of_little_cores.W)))
+    val sch_na_SRNode                              = BundleBridgeSource[UInt](Some(() => UInt(16.W)))
     subsystem.tile_sch_na_EPNode                  := sch_na_SRNode
 
 

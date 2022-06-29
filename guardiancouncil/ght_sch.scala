@@ -81,7 +81,8 @@ class GHT_SCH_FP (val params: GHT_SCH_Params) extends Module with HasGHT_SCH_IO
   out_of_range                                 := (current_dest < io.core_s) || (current_dest > io.core_e)
 
   // We only change the dest when current core is not avaiable and next core is avaiable 
-  change_dest                                  := ((io.core_na(current_dest) === 1.U) && (io.core_na(nxt_dest) === 0.U) || out_of_range) 
+  // bit 0 for checker 1, global ID: 1 
+  change_dest                                  := ((io.core_na(current_dest-1.U) === 1.U) && (io.core_na(nxt_dest-1.U) === 0.U) || out_of_range) 
 
   nxt_dest                                     := MuxCase(0.U, 
                                                     Array((out_of_range) -> io.core_s,
