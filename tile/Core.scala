@@ -157,6 +157,7 @@ trait HasCoreIO extends HasTileParameters {
     val new_commit = UInt(1.W).asOutput
     val clk_enable_gh = Bool().asInput
     val alu_2cycle_delay = UInt(p(XLen).W).asOutput
+    val csr_rw_wdata = UInt(p(XLen).W).asOutput
     //===== GuardianCouncil Function: End ====//
   }
 }

@@ -166,6 +166,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     outer.ghe_event_out_SRNode.bundle := ghe_bridge.io.out
     ght.io.core_na := outer.sch_na_inSKNode.bundle
     ght.io.new_commit := core.io.new_commit
+    ght.io.csr_rw_wdata := core.io.csr_rw_wdata
   } else
   { // Other cores:
     // For other cores: no GHT is required, and hence tied-off

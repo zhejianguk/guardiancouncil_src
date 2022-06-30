@@ -291,6 +291,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
    io.pc := wb_reg_pc
    io.inst := wb_reg_inst
    io.new_commit := csr.io.trace(0).valid && !csr.io.trace(0).exception
+   io.csr_rw_wdata := csr.io.rw.wdata
   //===== GuardianCouncil Function: End   ====//
 
 
