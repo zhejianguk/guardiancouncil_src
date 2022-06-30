@@ -250,11 +250,6 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   val take_pc_mem_wb = take_pc_wb || take_pc_mem
   val take_pc = take_pc_mem_wb
 
-  //===== GuardianCouncil Function: Start ====//
-   io.pc := wb_reg_pc
-   io.inst := wb_reg_inst
-  //===== GuardianCouncil Function: End   ====//
-
   // decode stage
   val ibuf = Module(new IBuf)
   val id_expanded_inst = ibuf.io.inst.map(_.bits.inst)
@@ -291,6 +286,13 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   val id_csr = Mux(id_csr_ren, CSR.R, id_ctrl.csr)
   val id_sfence = id_ctrl.mem && id_ctrl.mem_cmd === M_SFENCE
   val id_csr_flush = id_sfence || id_system_insn || (id_csr_en && !id_csr_ren && csr.io.decode(0).write_flush)
+  
+  //===== GuardianCouncil Function: Start ====//
+   io.pc := wb_reg_pc
+   io.inst := wb_reg_inst
+   io.new_commit := csr.io.trace(0).valid && !csr.io.trace(0).exception
+  //===== GuardianCouncil Function: End   ====//
+
 
   val id_scie_decoder = if (!rocketParams.useSCIE) Wire(new SCIEDecoderInterface) else {
     val d = Module(new SCIEDecoder)

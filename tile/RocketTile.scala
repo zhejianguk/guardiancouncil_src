@@ -165,6 +165,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     core.io.clk_enable_gh := ~(outer.bigcore_hang_in_SKNode.bundle) 
     outer.ghe_event_out_SRNode.bundle := ghe_bridge.io.out
     ght.io.core_na := outer.sch_na_inSKNode.bundle
+    ght.io.new_commit := core.io.new_commit
   } else
   { // Other cores:
     // For other cores: no GHT is required, and hence tied-off

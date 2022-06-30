@@ -29,7 +29,8 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_mask_in                               = Input(UInt(1.W))
   val ght_cfg_in                                = Input(UInt(32.W))
   val ght_cfg_valid                             = Input(UInt(1.W))
-  val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W)) 
+  val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W))
+  val new_commit                                = Input(UInt(1.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -52,7 +53,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   //==========================================================
   // Filter: PMC + Sanitiser
   val u_ght_filter                               = Module (new GHT_FILTER(GHT_FILTER_Params (params.width_data, params.totaltypes_of_insts, params.packet_size)))
-  u_ght_filter.io.ght_ft_newcommit_in           := u_ght_cc.io.ght_cc_newcommit_out
+  u_ght_filter.io.ght_ft_newcommit_in           := io.new_commit
   u_ght_filter.io.ght_ft_alu_in                 := this.io.ght_alu_in
   u_ght_filter.io.ght_ft_inst_in                := this.io.ght_inst_in
   u_ght_filter.io.ght_ft_pc_in                  := this.io.ght_pcaddr_in
