@@ -358,8 +358,8 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   //===== GuardianCouncil Function: Start ====//
   // Enabling data bypass for RoCC commands
   val dcache_bypass_data =
-    if (fastLoadByte) Mux(mem_ctrl.rocc, io.rocc.resp.bits.data, io.dmem.resp.bits.data(xLen-1, 0))
-    else if (fastLoadWord) Mux(mem_ctrl.rocc, io.rocc.resp.bits.data, io.dmem.resp.bits.data_word_bypass(xLen-1, 0))
+    if (fastLoadByte) Mux(wb_ctrl.rocc, io.rocc.resp.bits.data, io.dmem.resp.bits.data(xLen-1, 0))
+    else if (fastLoadWord) Mux(wb_ctrl.rocc, io.rocc.resp.bits.data, io.dmem.resp.bits.data_word_bypass(xLen-1, 0))
     else wb_reg_wdata
   //===== GuardianCouncil Function: End ====//
 
