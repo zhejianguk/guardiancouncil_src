@@ -32,6 +32,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W))
   val new_commit                                = Input(UInt(1.W))
   val csr_rw_wdata                              = Input(UInt(params.width_data.W))
+  val ghm_agg_core_id                           = Output(UInt(16.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -142,10 +143,25 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   core_d_all                                    := u_core_d_orgate.io.out
 
 
+  //==========================================================
+  // AGG Configuration
+  //==========================================================
+  val agg_core_id                                = RegInit(4.U(16.W))
+  val agg_core_id_cfg_filter                     = WireInit(0.U(16.W))
+  val agg_core_id_valid_filter                   = WireInit(0.U(1.W))
+  agg_core_id_cfg_filter                        := Mux((this.io.ght_cfg_in(3,0) === 0x8.U),
+                                                        this.io.ght_cfg_in(31, 16), 0.U)
+  agg_core_id_valid_filter                      := Mux((this.io.ght_cfg_in(3,0) === 0x8.U),
+                                                        this.io.ght_cfg_valid, 0.U)
+
+  when (agg_core_id_valid_filter === 1.U) {
+    agg_core_id                                 := agg_core_id_cfg_filter
+  }
 
   //==========================================================
   // Output generation
   //==========================================================
   io.ght_packet_out                             := Mux((io.ght_mask_in === 1.U), 0.U, ght_pack)
   io.ght_packet_dest                            := core_d_all
+  io.ghm_agg_core_id                            := agg_core_id
 }

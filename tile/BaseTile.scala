@@ -226,7 +226,8 @@ abstract class BaseTile private (val crossing: ClockCrossingType, q: Parameters)
   val resetVectorNode: BundleBridgeInwardNode[UInt] =
     resetVectorSinkNode := resetVectorNexusNode := BundleBridgeNameNode("reset_vector")
 
-  //===== GuardianCouncil Function: Start ====//
+  //===== GuardianCouncil Function: Start ====// 
+  val ghm_agg_core_id_out_SRNode  = BundleBridgeSource[UInt](Some(() => UInt(16.W)))
   val ght_packet_out_SRNode       = BundleBridgeSource[UInt](Some(() => UInt(128.W)))
   val ght_packet_dest_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(32.W)))
   val ght_status_out_SRNode       = BundleBridgeSource[UInt](Some(() => UInt(32.W)))

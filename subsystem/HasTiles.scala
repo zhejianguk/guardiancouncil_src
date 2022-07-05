@@ -223,6 +223,7 @@ trait HasTileNotificationSinks { this: LazyModule =>
 
 //===== GuardianCouncil Function: Start ====//
 trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
+  val tile_ghm_agg_core_id_EPNode            = BundleBridgeEphemeralNode[UInt]()
   val tile_ght_packet_out_EPNode                 = BundleBridgeEphemeralNode[UInt]()
   val tile_ght_packet_dest_EPNode                = BundleBridgeEphemeralNode[UInt]()
   val tile_ght_status_out_EPNode                 = BundleBridgeEphemeralNode[UInt]()
@@ -411,6 +412,7 @@ trait CanAttachTile {
     // GHT connections
     if (tileParams.hartId == 0) {
       context.tile_ght_packet_out_EPNode  := domain.tile.ght_packet_out_SRNode
+      context.tile_ghm_agg_core_id_EPNode := domain.tile.ghm_agg_core_id_out_SRNode
       context.tile_ght_packet_dest_EPNode := domain.tile.ght_packet_dest_SRNode
       context.tile_ght_status_out_EPNode  := domain.tile.ght_status_out_SRNode
       domain.tile.bigcore_hang_in_SKNode  := context.tile_bigcore_hang_EPNode
@@ -421,10 +423,12 @@ trait CanAttachTile {
       val useless_bigcore_hang_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
       val useless_bigcore_comp_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
       val useless_packet_SKNode            = BundleBridgeSink[UInt](Some(() => UInt(128.W)))
+      val useless_agg_core_id_SKNode       = BundleBridgeSink[UInt](Some(() => UInt(16.W)))
       val useless_packet_dest_SKNode       = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
       val useless_status_SKNode            = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
       val useless_sch_na_inSKNode          = BundleBridgeSource[UInt](Some(() => UInt(16.W)))
       useless_packet_SKNode               := domain.tile.ght_packet_out_SRNode
+      useless_agg_core_id_SKNode          := domain.tile.ghm_agg_core_id_out_SRNode
       useless_packet_dest_SKNode          := domain.tile.ght_packet_dest_SRNode
       useless_status_SKNode               := domain.tile.ght_status_out_SRNode
       domain.tile.bigcore_hang_in_SKNode  := useless_bigcore_hang_SRNode

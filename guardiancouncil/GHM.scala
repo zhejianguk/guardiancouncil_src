@@ -30,12 +30,12 @@ class GHMIO(params: GHMParams) extends Bundle {
 
   val agg_packet_in                              = Input(Vec(params.number_of_little_cores, UInt(params.width_GH_packet.W)))
   val agg_buffer_full                            = Output(Vec(params.number_of_little_cores, UInt(1.W)))
-  val agg_packet_out                             = Output(UInt(params.width_GH_packet.W))
-  val agg_core_full                              = Input(UInt(1.W))
+  val agg_core_full                              = Input(Vec(params.number_of_little_cores,UInt(1.W)))
+  val agg_core_id                                = Input(UInt(16.W))
 
   val sch_na_in                                  = Input(Vec(params.number_of_little_cores, UInt(1.W)))
   val sch_na_out                                 = Output(UInt(params.number_of_little_cores.W))
-  val sch_do_refresh                             = Input(UInt(32.W))
+  val sch_do_refresh                             = Input(Vec(params.number_of_little_cores, UInt(32.W)))
   val sch_refresh_out                            = Output(Vec(params.number_of_little_cores, UInt(1.W)))
 }
 
@@ -49,6 +49,8 @@ trait HasGHMIO extends BaseModule {
 //==========================================================
 class GHM (val params: GHMParams) extends Module with HasGHMIO
 {
+  val u_agg                                      = Module (new GHT_AGG(GHM_AGG_Params(params.number_of_little_cores, params.width_GH_packet)))
+
   // Adding a register to avoid the critical path
   val packet_in_reg                              = RegInit (0.U(params.width_GH_packet.W))
   val packet_dest_reg                            = RegInit (0.U((params.number_of_little_cores+1).W))
@@ -63,23 +65,31 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
 
   val sch_na_in_wires                            = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(params.number_of_little_cores.W))))
   val zeros_nbit                                 = WireInit(0.U((params.number_of_little_cores - 1).W))
-
+  val agg_core_id                                = io.agg_core_id
+  val do_refresh                                 = WireInit(0.U(32.W))
 
 
   
   
   // Routing
   for (i <- 0 to params.number_of_little_cores - 1) {
-    when (packet_dest_reg(i) === 1.U) {
-      packet_out_wires(i)                       := packet_in_reg
-    }
+    packet_out_wires(i)                         := MuxCase(0.U, 
+                                                    Array(((packet_dest_reg(i) === 1.U) && (agg_core_id =/= i.U)) -> packet_in_reg,
+                                                          ((packet_dest_reg(i) =/= 1.U) && (agg_core_id =/= i.U)) -> 0.U,
+                                                          (agg_core_id === i.U) -> u_agg.io.agg_packet_out
+                                                          )
+                                                          ) 
+    u_agg.io.agg_packet_in(i)                   := io.agg_packet_in(i)
+    io.agg_buffer_full(i)                       := u_agg.io.agg_buffer_full(i)
   }
+  u_agg.io.agg_core_full                        := io.agg_core_full(agg_core_id)
+  do_refresh                                    := io.sch_do_refresh(agg_core_id)
 
   for(i <- 0 to params.number_of_little_cores - 1) {
     io.ghm_packet_outs(i)                      := packet_out_wires(i)
     io.ghm_status_outs(i)                      := io.ghm_status_in
     sch_na_in_wires(i)                         := Cat(zeros_nbit, io.sch_na_in(i))
-    io.sch_refresh_out(i)                      := io.sch_do_refresh(i)
+    io.sch_refresh_out(i)                      := do_refresh(i)
   }
 
 
@@ -93,16 +103,6 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
   io.bigcore_hang                              := warning
   io.bigcore_comp                              := Cat(release, complete)
   io.sch_na_out                                := sch_na
-
-  // Agg
-  val u_agg                                     = Module (new GHT_AGG(GHM_AGG_Params(params.number_of_little_cores, params.width_GH_packet)))
-  for (i <- 0 to params.number_of_little_cores - 1) {
-    u_agg.io.agg_packet_in(i)                     := io.agg_packet_in(i)
-    io.agg_buffer_full(i)                         := u_agg.io.agg_buffer_full(i)
-    io.agg_packet_out                             := u_agg.io.agg_packet_out
-    u_agg.io.agg_core_full                        := io.agg_core_full
-  }
-
 }
 
 case class GHMCoreLocated(loc: HierarchicalLocation) extends Field[Option[GHMParams]](None)
@@ -117,6 +117,7 @@ object GHMCore {
     val bigcore_hang_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
     val bigcore_comp_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
     val ghm_ght_packet_in_SKNode                   = BundleBridgeSink[UInt](Some(() => UInt((params.width_GH_packet).W)))
+    val ghm_agg_core_id_SKNode                     = BundleBridgeSink[UInt](Some(() => UInt(16.W)))
     val ghm_ght_packet_dest_SKNode                 = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
 
     val ghm_ght_status_in_SKNode                   = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
@@ -126,6 +127,7 @@ object GHMCore {
     var ghm_ghe_event_in_SKNodes                   = Seq[BundleBridgeSink[UInt]]()
 
     ghm_ght_packet_in_SKNode                      := subsystem.tile_ght_packet_out_EPNode
+    ghm_agg_core_id_SKNode                        := subsystem.tile_ghm_agg_core_id_EPNode
     ghm_ght_packet_dest_SKNode                    := subsystem.tile_ght_packet_dest_EPNode
     ghm_ght_status_in_SKNode                      := subsystem.tile_ght_status_out_EPNode
 
@@ -191,6 +193,7 @@ object GHMCore {
       ghm.io.ghm_packet_in                        := ghm_ght_packet_in_SKNode.bundle
       ghm.io.ghm_packet_dest                      := ghm_ght_packet_dest_SKNode.bundle
       ghm.io.ghm_status_in                        := ghm_ght_status_in_SKNode.bundle
+      ghm.io.agg_core_id                          := ghm_agg_core_id_SKNode.bundle 
 
       for (i <- 0 to number_of_ghes-1) {
         if (i == 0) { // The big core
@@ -199,14 +202,9 @@ object GHMCore {
           ghm_ghe_status_out_SRNodes(i).bundle    := 0.U
           agg_buffer_full_out_SRNodes(i).bundle   := 0.U
         } else {// -1 big core
-            if ( i == (params.id_agg - 1)) {
-              ghm_ghe_packet_out_SRNodes(i).bundle:= ghm.io.agg_packet_out
-              ghm.io.agg_core_full                := agg_core_full_in_SKNodes(i).bundle
-              ghm.io.sch_do_refresh               := ghm_ght_sch_dorefresh_in_SKNodes(i).bundle
-            }    
-            else {
-              ghm_ghe_packet_out_SRNodes(i).bundle:= ghm.io.ghm_packet_outs(i-1)
-            }
+          ghm_ghe_packet_out_SRNodes(i).bundle    := ghm.io.ghm_packet_outs(i-1)
+          ghm.io.agg_core_full(i-1)               := agg_core_full_in_SKNodes(i).bundle
+          ghm.io.sch_do_refresh(i-1)              := ghm_ght_sch_dorefresh_in_SKNodes(i).bundle
           ghm_ghe_status_out_SRNodes(i).bundle    := ghm.io.ghm_status_outs(i-1)
           ghm.io.ghe_event_in(i-1)                := ghm_ghe_event_in_SKNodes(i).bundle
           ghm.io.agg_packet_in(i-1)               := agg_packet_in_SKNodes(i).bundle
