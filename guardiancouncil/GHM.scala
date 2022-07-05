@@ -65,7 +65,7 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
 
   val sch_na_in_wires                            = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(params.number_of_little_cores.W))))
   val zeros_nbit                                 = WireInit(0.U((params.number_of_little_cores - 1).W))
-  val agg_core_id                                = io.agg_core_id
+  val agg_core_id                                = io.agg_core_id - 1.U
   val do_refresh                                 = WireInit(0.U(32.W))
 
 
