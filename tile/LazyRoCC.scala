@@ -466,6 +466,68 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     //===== GuardianCouncil Function: End   ====//
   }
 
+  val cmd = io.in
+  val cmdReadys = io.out.zip(opcodes).map { case (out, opcode) =>
+    val me = opcode.matches(cmd.bits.inst.opcode)
+    out.valid := cmd.valid && me
+    out.bits := cmd.bits
+    out.ready && me
+  }
+  cmd.ready := cmdReadys.reduce(_ || _)
+  io.busy := cmd.valid
+  //===== GuardianCouncil Function: Start ====//
+  io.ghe_event_out := io.ghe_event_in
+  io.ght_mask_out := io.ght_mask_in
+  io.ght_status_out := io.ght_status_in
+  io.ght_cfg_out := io.ght_cfg_in
+  io.ght_cfg_valid := io.ght_cfg_valid_in
+
+  io.agg_packet_out := io.agg_packet_in
+  io.agg_core_full_out := io.agg_core_full_in
+  io.ght_sch_na_out := io.ght_sch_na_in
+  io.ght_sch_dorefresh_out := io.ght_sch_dorefresh_in
+
+  //===== GuardianCouncil Function: End   ====//
+  assert(PopCount(cmdReadys) <= 1.U,
+    "Custom opcode matched for more than one accelerator")
+}
+
+class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
+    extends CoreModule()(p) {
+  val io = new Bundle {
+    val in = Flipped(Decoupled(new RoCCCommand))
+    val out = Vec(opcodes.size, Decoupled(new RoCCCommand))
+    val busy = Output(Bool())
+    //===== GuardianCouncil Function: Start ====//
+    val ghe_packet_in = Input(UInt(128.W))
+    val ghe_status_in = Input(UInt(32.W))
+    val bigcore_comp  = Input(UInt(2.W))
+    val ghe_event_in = Input(UInt(3.W))
+    val ghe_event_out = Output(UInt(3.W))
+    val ght_mask_out  = Output(UInt(1.W))
+    val ght_mask_in = Input(UInt(1.W))
+    val ght_status_out  = Output(UInt(32.W))
+    val ght_status_in = Input(UInt(32.W))
+    val ght_cfg_out = Output(UInt(32.W))
+    val ght_cfg_in = Input(UInt(32.W))
+    val ght_cfg_valid = Output(UInt(1.W))
+    val ght_cfg_valid_in = Input(UInt(1.W))
+
+    val agg_packet_out = Output(UInt(128.W))
+    val agg_packet_in  = Input(UInt(128.W))
+    val agg_buffer_full = Input(UInt(1.W))
+    val agg_core_full_out = Output(UInt(1.W))
+    val agg_core_full_in = Input(UInt(1.W))
+
+    val ght_sch_na_in = Input(UInt(1.W))
+    val ght_sch_na_out = Output(UInt(1.W))
+    val ght_sch_refresh = Input(UInt(1.W))
+
+    val ght_sch_dorefresh_in = Input(UInt(32.W))
+    val ght_sch_dorefresh_out = Output(UInt(32.W))
+    //===== GuardianCouncil Function: End   ====//
+  }
+
   val cmd = Queue(io.in)
   val cmdReadys = io.out.zip(opcodes).map { case (out, opcode) =>
     val me = opcode.matches(cmd.bits.inst.opcode)

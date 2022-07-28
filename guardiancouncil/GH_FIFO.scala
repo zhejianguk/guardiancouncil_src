@@ -67,11 +67,11 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
   }
   
   // If the 
-  io.status_warning            := Mux(num_content > ((params.depth).U - (params.depth / 16).U), 
+  io.status_warning            := Mux(num_content > ((params.depth).U - 4.U), // Communition latency is 4 cycles, avoding to miss in-flight packet
                                       1.U, 
                                       0.U)
 
-  io.status_nearfull           := Mux(num_content > ((params.depth).U - (params.depth / 8).U), 
+  io.status_nearfull           := Mux(num_content > ((params.depth).U - 4.U - 1.U), // Avoding hang-up the big_core
                                       1.U, 
                                       0.U)
 
