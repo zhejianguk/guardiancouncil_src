@@ -31,7 +31,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_cfg_valid                             = Input(UInt(1.W))
   val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W))
   val new_commit                                = Input(UInt(1.W))
-  val csr_rw_wdata                              = Input(UInt(params.width_data.W))
+  val jalr_target                               = Input(UInt(params.width_data.W))
   val ghm_agg_core_id                           = Output(UInt(16.W))
 }
 
@@ -59,7 +59,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   u_ght_filter.io.ght_ft_alu_in                 := this.io.ght_alu_in
   u_ght_filter.io.ght_ft_inst_in                := this.io.ght_inst_in
   u_ght_filter.io.ght_ft_pc_in                  := this.io.ght_pcaddr_in
-  u_ght_filter.io.csr_rw_wdata                  := this.io.csr_rw_wdata
+  u_ght_filter.io.jalr_target                   := this.io.jalr_target
 
   // configuration path
   val ght_cfg_in_ft_filter                       = WireInit(0.U(32.W))
