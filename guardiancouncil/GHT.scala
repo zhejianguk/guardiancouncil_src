@@ -32,6 +32,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W))
   val new_commit                                = Input(UInt(1.W))
   val jalr_target                               = Input(UInt(params.width_data.W))
+  val effective_memaddr                         = Input(UInt(params.width_data.W))
   val ghm_agg_core_id                           = Output(UInt(16.W))
 }
 
@@ -60,6 +61,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   u_ght_filter.io.ght_ft_inst_in                := this.io.ght_inst_in
   u_ght_filter.io.ght_ft_pc_in                  := this.io.ght_pcaddr_in
   u_ght_filter.io.jalr_target                   := this.io.jalr_target
+  u_ght_filter.io.effective_memaddr             := this.io.effective_memaddr
 
   // configuration path
   val ght_cfg_in_ft_filter                       = WireInit(0.U(32.W))
