@@ -13,27 +13,31 @@ case class GHTParams(
   totalnumber_of_checkers: Int,
   totaltypes_of_insts: Int,
   totalnumber_of_ses: Int,
-  packet_size: Int
+  packet_size: Int,
+  core_width: Int
 )
 
 //==========================================================
 // I/Os
 //==========================================================
 class GHT_IO (params: GHTParams) extends Bundle {
-  val resetvector_in                            = Input(UInt(params.width_core_pc.W))
-  val ght_pcaddr_in                             = Input(UInt(params.width_core_pc.W))
-  val ght_alu_in                                = Input(UInt(params.width_data.W))
-  val ght_inst_in                               = Input(UInt(32.W))
   val ght_packet_out                            = Output(UInt((params.packet_size).W))
   val ght_packet_dest                           = Output(UInt(params.width_core_pc.W))
   val ght_mask_in                               = Input(UInt(1.W))
   val ght_cfg_in                                = Input(UInt(32.W))
   val ght_cfg_valid                             = Input(UInt(1.W))
   val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W))
-  val new_commit                                = Input(UInt(1.W))
-  val jalr_target                               = Input(UInt(params.width_data.W))
-  val effective_memaddr                         = Input(UInt(params.width_data.W))
   val ghm_agg_core_id                           = Output(UInt(16.W))
+  
+  val ght_inst_in                               = Input(Vec(params.core_width, UInt(32.W)))
+  val ght_pcaddr_in                             = Input(Vec(params.core_width, UInt(params.width_core_pc.W)))
+  val new_commit                                = Input(Vec(params.core_width, Bool()))
+  val ght_alu_in                                = Input(Vec(params.core_width, UInt(params.width_data.W)))
+  val jalr_target                               = Input(Vec(params.core_width, UInt(params.width_data.W)))
+  val effective_memaddr                         = Input(Vec(params.core_width, UInt(params.width_data.W)))
+
+  val ght_stall                                 = Input(Bool())
+  val core_hang_up                              = Output(UInt(1.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -45,16 +49,9 @@ trait HasGHT_IO extends BaseModule {
 class GHT (val params: GHTParams) extends Module with HasGHT_IO
 {
   //==========================================================
-  // Commit Counter
-  //==========================================================
-  val u_ght_cc                                   = Module (new GHT_CC(GHT_CC_Params (params.width_core_pc)))
-  u_ght_cc.io.resetvector_in                    := this.io.resetvector_in
-  u_ght_cc.io.ght_cc_pcaddr_in                  := this.io.ght_pcaddr_in
-
-  //==========================================================
   // Filters
   //==========================================================
-  // Filter: PMC + Sanitiser
+  /*
   val u_ght_filter                               = Module (new GHT_FILTER(GHT_FILTER_Params (params.width_data, params.totaltypes_of_insts, params.packet_size)))
   u_ght_filter.io.ght_ft_newcommit_in           := this.io.new_commit
   u_ght_filter.io.ght_ft_alu_in                 := this.io.ght_alu_in
@@ -75,12 +72,59 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   
   // execution path
   // using registers to break the critical path
-  val inst_type                                  = RegInit(0.U(params.totaltypes_of_insts.W))
   val ght_pack                                   = RegInit(0.U((params.packet_size).W))
   val inst_index                                 = RegInit(0.U(5.W))
-  inst_type                                     := u_ght_filter.io.ght_ft_inst_type
   ght_pack                                      := u_ght_filter.io.packet_out
   inst_index                                    := u_ght_filter.io.ght_ft_inst_index
+  */
+
+  // Filters
+  val new_commit_ft                              = WireInit(VecInit(Seq.fill(params.core_width)(0.U(1.W))))
+  val ght_alu_in_ft                              = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
+  val ght_inst_in_ft                             = WireInit(VecInit(Seq.fill(params.core_width)(0.U(32.W))))
+  val ght_pcaddr_in_ft                           = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
+  val jalr_target_ft                             = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
+  val effective_memaddr_ft                       = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
+
+  for (i<- 0 to params.core_width - 1){
+    new_commit_ft(i)                            := Mux((io.ght_mask_in === 1.U), 0.U, this.io.new_commit(i))
+    ght_alu_in_ft(i)                            := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_alu_in(i))
+    ght_inst_in_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_inst_in(i))
+    ght_pcaddr_in_ft(i)                         := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_pcaddr_in(i))
+    jalr_target_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.jalr_target(i))
+    effective_memaddr_ft(i)                     := Mux((io.ght_mask_in === 1.U), 0.U, this.io.effective_memaddr(i))
+  }
+
+  val u_ght_filters                              = Module (new GHT_FILTERS(GHT_FILTERS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width)))
+  for (i <- 0 to params.core_width - 1) {  
+    u_ght_filters.io.ght_ft_newcommit_in(i)     := new_commit_ft(i)
+    u_ght_filters.io.ght_ft_alu_in(i)           := ght_alu_in_ft(i)
+    u_ght_filters.io.ght_ft_inst_in(i)          := ght_inst_in_ft(i)
+    u_ght_filters.io.ght_ft_pc_in(i)            := ght_pcaddr_in_ft(i)
+    u_ght_filters.io.jalr_target(i)             := jalr_target_ft(i)
+    u_ght_filters.io.effective_memaddr(i)       := effective_memaddr_ft(i)
+  }
+  u_ght_filters.io.ght_stall                    := this.io.ght_stall
+  this.io.core_hang_up                          := u_ght_filters.io.core_hang_up
+  
+  // configuration path
+  val ght_cfg_in_ft_filter                       = WireInit(0.U(32.W))
+  val ght_cfg_valid_ft_filter                    = WireInit(0.U(1.W))
+  ght_cfg_in_ft_filter                          := Mux((this.io.ght_cfg_in(3,0) === 2.U),
+                                                        this.io.ght_cfg_in, 0.U)
+  ght_cfg_valid_ft_filter                       := Mux((this.io.ght_cfg_in(3,0) === 2.U),
+                                                        this.io.ght_cfg_valid, 0.U)
+  u_ght_filters.io.ght_ft_cfg_in                := ght_cfg_in_ft_filter
+  u_ght_filters.io.ght_ft_cfg_valid             := ght_cfg_valid_ft_filter
+
+  // execution path
+  // using registers to break the critical path
+  val ght_pack                                   = RegInit(0.U((params.packet_size).W))
+  val inst_index                                 = RegInit(0.U(5.W))
+  ght_pack                                      := u_ght_filters.io.packet_out
+  inst_index                                    := u_ght_filters.io.ght_ft_inst_index
+  
+  
 
  //==========================================================
   // Mapper
@@ -163,7 +207,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   //==========================================================
   // Output generation
   //==========================================================
-  io.ght_packet_out                             := Mux((io.ght_mask_in === 1.U), 0.U, ght_pack)
+  io.ght_packet_out                             := ght_pack
   io.ght_packet_dest                            := core_d_all
   io.ghm_agg_core_id                            := agg_core_id
 }

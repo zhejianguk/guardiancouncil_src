@@ -23,7 +23,6 @@ class GHT_FILTER_IO (params: GHT_FILTER_Params) extends Bundle {
   val ght_ft_pc_in                              = Input(UInt(32.W))
   val ght_ft_newcommit_in                       = Input(Bool())
   val ght_ft_alu_in                             = Input(UInt(params.xlen.W))
-  val ght_ft_inst_type                          = Output(UInt((params.totaltypes_of_insts).W))
   val ght_ft_inst_index                         = Output(UInt(5.W))
   val packet_out                                = Output(UInt((params.packet_size).W))
   val jalr_target                               = Input(UInt(params.xlen.W))
@@ -81,17 +80,13 @@ class GHT_FILTER (val params: GHT_FILTER_Params) extends Module with HasGHT_FILT
 
   val inst_index                                = WireInit(0.U(5.W))
   val dp_sel                                    = WireInit(0.U(4.W))
-  val inst_type                                 = WireInit(0.U(params.totaltypes_of_insts.W))
 
   inst_index                                   := u_ght_ftable.io.inst_index
   dp_sel                                       := u_ght_ftable.io.inst_sel_d
-  inst_type                                    := Mux(inst_index === 0.U, 
-                                                      0.U, 
-                                                      1.U << (inst_index - 1.U))
+
 
   val packet_zeros                              = WireInit(0.U(64.W))
 
-  io.ght_ft_inst_type                          := inst_type
   io.ght_ft_inst_index                         := inst_index
 
   io.packet_out                                := MuxCase(0.U, 
