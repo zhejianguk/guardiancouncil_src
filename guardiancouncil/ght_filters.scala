@@ -32,6 +32,7 @@ class GHT_FILTERS_IO (params: GHT_FILTERS_Params) extends Bundle {
 
   val ght_stall                                 = Input(Bool())
   val core_hang_up                              = Output(UInt(1.W))
+  val ght_buffer_status                         = Output(UInt(2.W))
 }
 
 
@@ -73,6 +74,7 @@ class GHT_FILTERS (val params: GHT_FILTERS_Params) extends Module with HasGHT_FI
   val buffer_enq_valid                          = WireInit(false.B)
   val buffer_enq_data                           = WireInit(VecInit(Seq.fill(params.core_width)(0.U(buffer_width.W))))
   val buffer_empty                              = WireInit(VecInit(Seq.fill(params.core_width)(false.B)))
+  val buffer_full                               = WireInit(VecInit(Seq.fill(params.core_width)(false.B)))
   val buffer_deq_data                           = WireInit(VecInit(Seq.fill(params.core_width)(0.U(buffer_width.W))))
   val buffer_deq_valid                          = WireInit(false.B)
 
@@ -100,6 +102,7 @@ class GHT_FILTERS (val params: GHT_FILTERS_Params) extends Module with HasGHT_FI
   /* Buffer Finite State Machine */
   for (i <- 0 to params.core_width - 1) {
     buffer_empty(i)                            := u_buffer(i).io.empty
+    buffer_full(i)                             := u_buffer(i).io.full
     buffer_deq_data(i)                         := u_buffer(i).io.deq_bits
     buffer_inst_type(i)                        := u_buffer(i).io.deq_bits(buffer_width - 1, params.packet_size)
     buffer_packet(i)                           := u_buffer(i).io.deq_bits(params.packet_size - 1, 0)
@@ -224,4 +227,5 @@ class GHT_FILTERS (val params: GHT_FILTERS_Params) extends Module with HasGHT_FI
   io.ght_ft_inst_index                        := inst_type
   io.packet_out                               := packet
   io.core_hang_up                             := u_buffer(0).io.status_nearfull
+  io.ght_buffer_status                        := Cat(buffer_full(0), buffer_empty(0))
 }

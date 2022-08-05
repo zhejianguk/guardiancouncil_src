@@ -67,9 +67,10 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doRefreshSch            = (cmd.fire() && (funct === 0x21.U))
 
     // For big core
-    val doBigCheck              = (cmd.fire() && (funct === 6.U))
-    val doMask                  = (cmd.fire() && (funct === 6.U) && (rs2_val === 1.U))
-    val doGHT_Cfg               = (cmd.fire() && (funct === 6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
+    val doBigCheck              = (cmd.fire() && (funct === 0x6.U))
+    val doMask                  = (cmd.fire() && (funct === 0x6.U) && (rs2_val === 1.U))
+    val doGHT_Cfg               = (cmd.fire() && (funct === 0x6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
+    val doGHTBufferCheck        = (cmd.fire() && (funct === 0x8.U)) 
     val bigComp                 = io.bigcore_comp
 
 
@@ -108,7 +109,10 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doCheckBigStatus    -> ghe_status_reg,
                                           doCheckAgg          -> Cat(zeros_62bits, io.agg_buffer_full, zeros_1bit),
                                           doCheckSch          -> Cat(zeros_63bits, channel_sch_na),
-                                          doBigCheck          -> Cat(bigComp, rs1_val(15, 0))))
+                                          doBigCheck          -> Cat(bigComp, rs1_val(15, 0)),
+                                          doGHTBufferCheck    -> Cat(zeros_62bits, io.ght_buffer_status)
+                                          )
+                                          )
     when (doEvent) {
       ghe_event_reg            := rs1_val(1,0)
     }

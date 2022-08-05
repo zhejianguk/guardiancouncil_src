@@ -61,6 +61,7 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val ght_sch_na = Output(UInt(1.W))
   val ght_sch_refresh = Input(UInt(1.W))
   val ght_sch_dorefresh = Output(UInt(32.W))
+  val ght_buffer_status = Input(UInt(2.W))
   //===== GuardianCouncil Function: End   ====//
 }
 
@@ -125,6 +126,7 @@ trait HasLazyRoCCModule extends CanHavePTWModule
       cmdRouter.io.agg_core_full_in := rocc.module.io.agg_core_full
       cmdRouter.io.ght_sch_na_in := rocc.module.io.ght_sch_na
       rocc.module.io.ght_sch_refresh := cmdRouter.io.ght_sch_refresh
+      rocc.module.io.ght_buffer_status := cmdRouter.io.ght_buffer_status
       cmdRouter.io.ght_sch_dorefresh_in := rocc.module.io.ght_sch_dorefresh
       //===== GuardianCouncil Function: End   ====//
     }
@@ -460,6 +462,7 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val ght_sch_na_in = Input(UInt(1.W))
     val ght_sch_na_out = Output(UInt(1.W))
     val ght_sch_refresh = Input(UInt(1.W))
+    val ght_buffer_status = Input(UInt(2.W))
 
     val ght_sch_dorefresh_in = Input(UInt(32.W))
     val ght_sch_dorefresh_out = Output(UInt(32.W))
@@ -522,6 +525,7 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val ght_sch_na_in = Input(UInt(1.W))
     val ght_sch_na_out = Output(UInt(1.W))
     val ght_sch_refresh = Input(UInt(1.W))
+    val ght_buffer_status = Input(UInt(2.W))
 
     val ght_sch_dorefresh_in = Input(UInt(32.W))
     val ght_sch_dorefresh_out = Output(UInt(32.W))

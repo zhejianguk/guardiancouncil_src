@@ -239,6 +239,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     outer.agg_core_full_SRNode.bundle := cmdRouter.get.io.agg_core_full_out
     outer.ght_sch_na_out_SRNode.bundle := cmdRouter.get.io.ght_sch_na_out
     cmdRouter.get.io.ght_sch_refresh := outer.ghe_sch_refresh_in_SKNode.bundle
+    cmdRouter.get.io.ght_buffer_status := 0.U
     // For big_core GHT
     cmdRouter.get.io.bigcore_comp := outer.bigcore_comp_in_SKNode.bundle
     outer.ght_sch_dorefresh_SRNode.bundle := cmdRouter.get.io.ght_sch_dorefresh_out                           

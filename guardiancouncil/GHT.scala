@@ -38,6 +38,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
 
   val ght_stall                                 = Input(Bool())
   val core_hang_up                              = Output(UInt(1.W))
+  val ght_buffer_status                         = Output(UInt(2.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -106,6 +107,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   }
   u_ght_filters.io.ght_stall                    := this.io.ght_stall
   this.io.core_hang_up                          := u_ght_filters.io.core_hang_up
+  this.io.ght_buffer_status                     := u_ght_filters.io.ght_buffer_status
   
   // configuration path
   val ght_cfg_in_ft_filter                       = WireInit(0.U(32.W))
