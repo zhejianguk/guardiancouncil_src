@@ -25,8 +25,6 @@ class GHT_FILTER_IO (params: GHT_FILTER_Params) extends Bundle {
   val ght_ft_alu_in                             = Input(UInt(params.xlen.W))
   val ght_ft_inst_index                         = Output(UInt(5.W))
   val packet_out                                = Output(UInt((params.packet_size).W))
-  val jalr_target                               = Input(UInt(params.xlen.W))
-  val effective_memaddr                         = Input(UInt(params.xlen.W))
 }
 
 
@@ -52,8 +50,6 @@ class GHT_FILTER (val params: GHT_FILTER_Params) extends Module with HasGHT_FILT
   val opcode_reg                                = RegInit(0.U(7.W))
   val dp_1_reg                                  = RegInit(0.U(params.xlen.W))
   val pc_reg                                    = RegInit(0.U(32.W))
-  val jalr_target_reg                           = RegInit(0.U(params.xlen.W))
-  val effective_memaddr_reg                     = RegInit(0.U(params.xlen.W))
 
   inst                                         := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in, 0x0.U)
   func                                         := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in(14, 12), 0x0.U)
@@ -65,8 +61,6 @@ class GHT_FILTER (val params: GHT_FILTER_Params) extends Module with HasGHT_FILT
   opcode_reg                                   := opcode
   dp_1_reg                                     := io.ght_ft_alu_in
   pc_reg                                       := pc
-  jalr_target_reg                              := io.jalr_target
-  effective_memaddr_reg                        := io.effective_memaddr
 
   val u_ght_ftable                              = Module (new GHT_FTABLE(GHT_FTABLE_Params ()))
   u_ght_ftable.io.cfg_ref_inst_func            := this.io.ght_ft_cfg_in(31,28)
@@ -93,9 +87,7 @@ class GHT_FILTER (val params: GHT_FILTER_Params) extends Module with HasGHT_FILT
                                                     Array((dp_sel === 0.U)  -> 0.U,
                                                           (dp_sel === 1.U)  -> Cat(inst_reg, packet_zeros),
                                                           (dp_sel === 2.U)  -> Cat(inst_reg, dp_1_reg),
-                                                          (dp_sel === 3.U)  -> Cat(pc_reg, inst_reg, effective_memaddr_reg),
-                                                          (dp_sel === 4.U)  -> Cat(pc_reg, inst_reg, dp_1_reg),
-                                                          (dp_sel === 5.U)  -> Cat(pc_reg, inst_reg, jalr_target_reg(31,0), dp_1_reg(31,0))
+                                                          (dp_sel === 3.U)  -> Cat(pc_reg, inst_reg, dp_1_reg)
                                                           )
                                                           ) 
 }

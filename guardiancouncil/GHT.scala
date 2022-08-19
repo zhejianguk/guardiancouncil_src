@@ -33,8 +33,6 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_pcaddr_in                             = Input(Vec(params.core_width, UInt(params.width_core_pc.W)))
   val new_commit                                = Input(Vec(params.core_width, Bool()))
   val ght_alu_in                                = Input(Vec(params.core_width, UInt(params.width_data.W)))
-  val jalr_target                               = Input(Vec(params.core_width, UInt(params.width_data.W)))
-  val effective_memaddr                         = Input(Vec(params.core_width, UInt(params.width_data.W)))
 
   val ght_stall                                 = Input(Bool())
   val core_hang_up                              = Output(UInt(1.W))
@@ -52,33 +50,6 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   //==========================================================
   // Filters
   //==========================================================
-  /*
-  val u_ght_filter                               = Module (new GHT_FILTER(GHT_FILTER_Params (params.width_data, params.totaltypes_of_insts, params.packet_size)))
-  u_ght_filter.io.ght_ft_newcommit_in           := this.io.new_commit
-  u_ght_filter.io.ght_ft_alu_in                 := this.io.ght_alu_in
-  u_ght_filter.io.ght_ft_inst_in                := this.io.ght_inst_in
-  u_ght_filter.io.ght_ft_pc_in                  := this.io.ght_pcaddr_in
-  u_ght_filter.io.jalr_target                   := this.io.jalr_target
-  u_ght_filter.io.effective_memaddr             := this.io.effective_memaddr
-
-  // configuration path
-  val ght_cfg_in_ft_filter                       = WireInit(0.U(32.W))
-  val ght_cfg_valid_ft_filter                    = WireInit(0.U(1.W))
-  ght_cfg_in_ft_filter                          := Mux((this.io.ght_cfg_in(3,0) === 2.U),
-                                                        this.io.ght_cfg_in, 0.U)
-  ght_cfg_valid_ft_filter                       := Mux((this.io.ght_cfg_in(3,0) === 2.U),
-                                                        this.io.ght_cfg_valid, 0.U)
-  u_ght_filter.io.ght_ft_cfg_in                 := ght_cfg_in_ft_filter
-  u_ght_filter.io.ght_ft_cfg_valid              := ght_cfg_valid_ft_filter
-  
-  // execution path
-  // using registers to break the critical path
-  val ght_pack                                   = RegInit(0.U((params.packet_size).W))
-  val inst_index                                 = RegInit(0.U(5.W))
-  ght_pack                                      := u_ght_filter.io.packet_out
-  inst_index                                    := u_ght_filter.io.ght_ft_inst_index
-  */
-
   // Filters
   val new_commit_ft                              = WireInit(VecInit(Seq.fill(params.core_width)(0.U(1.W))))
   val ght_alu_in_ft                              = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
@@ -92,8 +63,6 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     ght_alu_in_ft(i)                            := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_alu_in(i))
     ght_inst_in_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_inst_in(i))
     ght_pcaddr_in_ft(i)                         := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_pcaddr_in(i))
-    jalr_target_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.jalr_target(i))
-    effective_memaddr_ft(i)                     := Mux((io.ght_mask_in === 1.U), 0.U, this.io.effective_memaddr(i))
   }
 
   val u_ght_filters                              = Module (new GHT_FILTERS(GHT_FILTERS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width)))
@@ -102,8 +71,6 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     u_ght_filters.io.ght_ft_alu_in(i)           := ght_alu_in_ft(i)
     u_ght_filters.io.ght_ft_inst_in(i)          := ght_inst_in_ft(i)
     u_ght_filters.io.ght_ft_pc_in(i)            := ght_pcaddr_in_ft(i)
-    u_ght_filters.io.jalr_target(i)             := jalr_target_ft(i)
-    u_ght_filters.io.effective_memaddr(i)       := effective_memaddr_ft(i)
   }
   u_ght_filters.io.ght_stall                    := this.io.ght_stall
   this.io.core_hang_up                          := u_ght_filters.io.core_hang_up
