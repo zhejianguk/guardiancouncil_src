@@ -53,16 +53,24 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
                                       writePtr - readPtr, 
                                       writePtr + params.depth.U - readPtr)
 
-  when (io.enq_valid && !fullReg) {
+  when ((io.enq_valid && !fullReg) && (io.deq_ready && !emptyReg)) {
+    memReg(writePtr)           := io.enq_bits
+    emptyReg                   := false.B
+    fullReg                    := false.B
+    incrWrite                  := true.B
+    incrRead                   := true.B
+  }
+
+  when ((io.enq_valid && !fullReg) && !(io.deq_ready && !emptyReg)){
     memReg(writePtr)           := io.enq_bits
     emptyReg                   := false.B
     fullReg                    := nextWrite === readPtr
     incrWrite                  := true.B
   }
-
-  when (io.deq_ready && !emptyReg) {
-    fullReg                    := false.B
+    
+  when (!(io.enq_valid && !fullReg) && (io.deq_ready && !emptyReg)) {
     emptyReg                   := nextRead === writePtr
+    fullReg                    := false.B
     incrRead                   := true.B
   }
   
@@ -78,6 +86,5 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
   io.deq_bits                  := memReg(readPtr)
   io.full                      := fullReg
   io.empty                     := emptyReg
-  val new_packet                = WireInit(false.B)
 }
 

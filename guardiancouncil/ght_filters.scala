@@ -11,7 +11,8 @@ case class GHT_FILTERS_Params(
   xlen: Int,
   totaltypes_of_insts: Int,
   packet_size: Int,
-  core_width: Int
+  core_width: Int,
+  use_prfs: Boolean
 )
 
 //==========================================================
@@ -31,6 +32,7 @@ class GHT_FILTERS_IO (params: GHT_FILTERS_Params) extends Bundle {
   val ght_stall                                 = Input(Bool())
   val core_hang_up                              = Output(UInt(1.W))
   val ght_buffer_status                         = Output(UInt(2.W))
+  val ght_prfs_rd_ft                            = Input(Vec(params.core_width, UInt(params.xlen.W)))
 }
 
 
@@ -49,7 +51,7 @@ class GHT_FILTERS (val params: GHT_FILTERS_Params) extends Module with HasGHT_FI
   val packet                                    = WireInit(0.U(params.packet_size.W))
   val inst_type                                 = WireInit(0.U(5.W))
 
-  val u_ght_filters                             = Seq.fill(params.core_width) {Module(new GHT_FILTER(GHT_FILTER_Params(params.xlen, params.totaltypes_of_insts, params.packet_size)))}
+  val u_ght_filters                             = Seq.fill(params.core_width) {Module(new GHT_FILTER(GHT_FILTER_Params(params.xlen, params.totaltypes_of_insts, params.packet_size, params.use_prfs)))}
   val u_buffer                                  = Seq.fill(params.core_width) {Module(new GH_FIFO(FIFOParams (buffer_width, 16)))}
 
   // Connecting filters
@@ -64,6 +66,7 @@ class GHT_FILTERS (val params: GHT_FILTERS_Params) extends Module with HasGHT_FI
     u_ght_filters(i).io.ght_ft_alu_in          := this.io.ght_ft_alu_in(i)
     filter_inst_index(i)                       := u_ght_filters(i).io.ght_ft_inst_index
     filter_packet(i)                           := u_ght_filters(i).io.packet_out
+    u_ght_filters(i).io.ght_prfs_rd            := this.io.ght_prfs_rd_ft(i)
   }
 
   // Connecting buffers: Enqueue Phase

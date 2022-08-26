@@ -14,7 +14,8 @@ case class GHTParams(
   totaltypes_of_insts: Int,
   totalnumber_of_ses: Int,
   packet_size: Int,
-  core_width: Int
+  core_width: Int,
+  use_prfs: Boolean
 )
 
 //==========================================================
@@ -33,6 +34,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_pcaddr_in                             = Input(Vec(params.core_width, UInt(params.width_core_pc.W)))
   val new_commit                                = Input(Vec(params.core_width, Bool()))
   val ght_alu_in                                = Input(Vec(params.core_width, UInt(params.width_data.W)))
+  val ght_prfs_rd                               = Input(Vec(params.core_width, UInt(params.width_data.W)))
 
   val ght_stall                                 = Input(Bool())
   val core_hang_up                              = Output(UInt(1.W))
@@ -55,22 +57,23 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   val ght_alu_in_ft                              = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
   val ght_inst_in_ft                             = WireInit(VecInit(Seq.fill(params.core_width)(0.U(32.W))))
   val ght_pcaddr_in_ft                           = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
-  val jalr_target_ft                             = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
-  val effective_memaddr_ft                       = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
+  val ght_prfs_rd_ft                             = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
 
   for (i<- 0 to params.core_width - 1){
     new_commit_ft(i)                            := Mux((io.ght_mask_in === 1.U), 0.U, this.io.new_commit(i))
     ght_alu_in_ft(i)                            := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_alu_in(i))
     ght_inst_in_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_inst_in(i))
     ght_pcaddr_in_ft(i)                         := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_pcaddr_in(i))
+    ght_prfs_rd_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_prfs_rd(i))
   }
 
-  val u_ght_filters                              = Module (new GHT_FILTERS(GHT_FILTERS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width)))
+  val u_ght_filters                              = Module (new GHT_FILTERS(GHT_FILTERS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width, params.use_prfs)))
   for (i <- 0 to params.core_width - 1) {  
     u_ght_filters.io.ght_ft_newcommit_in(i)     := new_commit_ft(i)
     u_ght_filters.io.ght_ft_alu_in(i)           := ght_alu_in_ft(i)
     u_ght_filters.io.ght_ft_inst_in(i)          := ght_inst_in_ft(i)
     u_ght_filters.io.ght_ft_pc_in(i)            := ght_pcaddr_in_ft(i)
+    u_ght_filters.io.ght_prfs_rd_ft(i)          := ght_prfs_rd_ft(i) 
   }
   u_ght_filters.io.ght_stall                    := this.io.ght_stall
   this.io.core_hang_up                          := u_ght_filters.io.core_hang_up
