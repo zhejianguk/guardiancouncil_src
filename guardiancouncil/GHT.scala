@@ -39,6 +39,11 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_stall                                 = Input(Bool())
   val core_hang_up                              = Output(UInt(1.W))
   val ght_buffer_status                         = Output(UInt(2.W))
+
+  val ght_prfs_forward_ldq                      = Output(Vec(params.core_width, Bool()))
+  val ght_prfs_forward_stq                      = Output(Vec(params.core_width, Bool()))
+  val ght_prfs_forward_ftq                      = Output(Vec(params.core_width, Bool()))
+  val ght_prfs_forward_prf                      = Output(Vec(params.core_width, Bool()))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -67,7 +72,8 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     ght_prfs_rd_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_prfs_rd(i))
   }
 
-  val u_ght_filters                              = Module (new GHT_FILTERS(GHT_FILTERS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width, params.use_prfs)))
+  val u_ght_filters                              = Module (new GHT_FILTERS_PRFS(GHT_FILTERS_PRFS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width, params.use_prfs)))
+
   for (i <- 0 to params.core_width - 1) {  
     u_ght_filters.io.ght_ft_newcommit_in(i)     := new_commit_ft(i)
     u_ght_filters.io.ght_ft_alu_in(i)           := ght_alu_in_ft(i)
@@ -97,6 +103,19 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   inst_index                                    := u_ght_filters.io.ght_ft_inst_index
   
   
+  for (i <- 0 to params.core_width -1){
+    if (params.use_prfs){ 
+      io.ght_prfs_forward_ldq(i)                := u_ght_filters.io.ght_prfs_forward_ldq(i)
+      io.ght_prfs_forward_stq(i)                := u_ght_filters.io.ght_prfs_forward_stq(i)
+      io.ght_prfs_forward_ftq(i)                := u_ght_filters.io.ght_prfs_forward_ftq(i)
+      io.ght_prfs_forward_prf(i)                := u_ght_filters.io.ght_prfs_forward_prf(i)
+    } else {
+      io.ght_prfs_forward_ldq(i)                := false.B
+      io.ght_prfs_forward_stq(i)                := false.B
+      io.ght_prfs_forward_ftq(i)                := false.B
+      io.ght_prfs_forward_prf(i)                := false.B
+    }
+  }
 
  //==========================================================
   // Mapper
