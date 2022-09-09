@@ -152,7 +152,12 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
   io.ght_ft_inst_index                         := inst_index_reg
   }
 
-  if (!params.use_prfs){ 
+  if (!params.use_prfs){
+  io.ght_prfs_forward_ldq                      := 0.U
+  io.ght_prfs_forward_stq                      := 0.U
+  io.ght_prfs_forward_prf                      := 0.U
+  io.ght_prfs_forward_ftq                      := 0.U
+  
   io.packet_out                                := MuxCase(0.U, 
                                                     Array((dp_sel === 0.U)  -> 0.U,
                                                           (dp_sel =/= 0.U)  -> Cat(pc_reg, inst_reg, dp_ldst_reg)
