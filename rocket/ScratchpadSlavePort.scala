@@ -41,10 +41,11 @@ class ScratchpadSlavePort(address: Seq[AddressSet], coreDataBytes: Int, usingAto
 
     val (tl_in, edge) = node.in(0)
 
-    val s_ready :: s_wait1 :: s_wait2 :: s_replay :: s_grant :: Nil = Enum(UInt(), 5)
-    val state = Reg(init = s_ready)
+    val s_ready :: s_wait1 :: s_wait2 :: s_replay :: s_init :: s_grant :: Nil = Enum(UInt(), 6)
+    val state = Reg(init = s_init)
     val dmem_req_valid = Wire(Bool())
     when (state === s_wait1) { state := s_wait2 }
+    when (state === s_init && tl_in.a.valid) { state := s_ready }
     when (io.dmem.resp.valid) { state := s_grant }
     when (tl_in.d.fire()) { state := s_ready }
     when (io.dmem.s2_nack) { state := s_replay }
@@ -70,6 +71,17 @@ class ScratchpadSlavePort(address: Seq[AddressSet], coreDataBytes: Int, usingAto
           TLAtomics.AND           -> M_XA_AND,
           TLAtomics.SWAP          -> M_XA_SWAP)),
         TLMessages.Get            -> M_XRD))
+
+      // Convert full PutPartial into PutFull to work around RMWs causing X-prop problems.
+      // Also prevent cmd becoming X out of reset by checking for s_init.
+      val mask_full = {
+        val desired_mask = new StoreGen(a.size, a.address, 0.U, coreDataBytes).mask
+        (a.mask | ~desired_mask).andR
+      }
+      when (state === s_init || (a.opcode === TLMessages.PutPartialData && mask_full)) {
+        req.cmd := M_XWR
+      }
+
       req.size := a.size
       req.signed := false
       req.addr := a.address
@@ -82,7 +94,7 @@ class ScratchpadSlavePort(address: Seq[AddressSet], coreDataBytes: Int, usingAto
     // ready_likely assumes that a valid response in s_wait2 is the vastly
     // common case.  In the uncommon case, we'll erroneously send a request,
     // then s1_kill it the following cycle.
-    val ready_likely = state === s_ready || state === s_wait2
+    val ready_likely = state.isOneOf(s_ready, s_wait2)
     val ready = state === s_ready || state === s_wait2 && io.dmem.resp.valid && tl_in.d.ready
     dmem_req_valid := (tl_in.a.valid && ready) || state === s_replay
     val dmem_req_valid_likely = (tl_in.a.valid && ready_likely) || state === s_replay

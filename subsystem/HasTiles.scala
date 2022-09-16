@@ -518,7 +518,7 @@ trait HasTiles extends InstantiatesTiles with HasCoreMonitorBundles with Default
 
 /** Provides some Chisel connectivity to certain tile IOs */
 trait HasTilesModuleImp extends LazyModuleImp with HasPeripheryDebugModuleImp {
-  val outer: HasTiles with HasTileInterruptSources with HasTileInputConstants with HasGHnodes
+  val outer: HasTiles with HasTileInterruptSources with HasTileInputConstants
 
   val reset_vector = outer.tileResetVectorIONodes.zipWithIndex.map { case (n, i) => n.makeIO(s"reset_vector_$i") }
   val tile_hartids = outer.tileHartIdIONodes.zipWithIndex.map { case (n, i) => n.makeIO(s"tile_hartids_$i") }

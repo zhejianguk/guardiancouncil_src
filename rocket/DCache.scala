@@ -11,7 +11,7 @@ import freechips.rocketchip.diplomaticobjectmodel.model.OMSRAM
 import freechips.rocketchip.tile.{CoreBundle, LookupByHartId}
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.util._
-import freechips.rocketchip.util.property._
+import freechips.rocketchip.util.property
 import chisel3.{DontCare, WireInit, dontTouch, withClock}
 import chisel3.experimental.{chiselName, NoChiselNamePrefix}
 import chisel3.internal.sourceinfo.SourceInfo
@@ -182,13 +182,15 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
     s0_tlb_req.vaddr := s0_req.addr
     s0_tlb_req.size := s0_req.size
     s0_tlb_req.cmd := s0_req.cmd
+    s0_tlb_req.prv := s0_req.dprv
+    s0_tlb_req.v := s0_req.dv
   }
   val s1_tlb_req = RegEnable(s0_tlb_req, s0_clk_en || tlb_port.req.valid)
 
   val s1_read = isRead(s1_req.cmd)
   val s1_write = isWrite(s1_req.cmd)
   val s1_readwrite = s1_read || s1_write
-  val s1_sfence = s1_req.cmd === M_SFENCE
+  val s1_sfence = s1_req.cmd === M_SFENCE || s1_req.cmd === M_HFENCEV || s1_req.cmd === M_HFENCEG
   val s1_flush_line = s1_req.cmd === M_FLUSH_ALL && s1_req.size(0)
   val s1_flush_valid = Reg(Bool())
   val s1_waw_hazard = Wire(Bool())
@@ -202,7 +204,6 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
   val resetting = RegInit(false.B)
   val flushCounter = Reg(init=UInt(nSets * (nWays-1), log2Ceil(nSets * nWays)))
   val release_ack_wait = Reg(init=Bool(false))
-  val release_ack_dirty = Reg(Bool())
   val release_ack_addr = Reg(UInt(paddrBits.W))
   val release_state = Reg(init=s_ready)
   val refill_way = Reg(UInt())
@@ -259,6 +260,8 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
   tlb.io.sfence.bits.rs2 := s1_req.size(1)
   tlb.io.sfence.bits.asid := io.cpu.s1_data.data
   tlb.io.sfence.bits.addr := s1_req.addr
+  tlb.io.sfence.bits.hv := s1_req.cmd === M_HFENCEV
+  tlb.io.sfence.bits.hg := s1_req.cmd === M_HFENCEG
 
   tlb_port.req.ready := clock_en_reg
   tlb_port.s1_resp := tlb.io.resp
@@ -456,7 +459,7 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
   when (s1_probe) { lrscCount := 0 }
 
   // don't perform data correction if it might clobber a recent store
-  val s2_correct = s2_data_error && !any_pstore_valid && !RegNext(any_pstore_valid) && Bool(usingDataScratchpad)
+  val s2_correct = s2_data_error && !any_pstore_valid && !RegNext(any_pstore_valid || s2_valid) && Bool(usingDataScratchpad)
   // pending store buffer
   val s2_valid_correct = s2_valid_hit_pre_data_ecc_and_waw && s2_correct && !io.cpu.s2_kill
   def s2_store_valid_pre_kill = s2_valid_hit && s2_write && !s2_sc_fail
@@ -575,7 +578,7 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
   tl_out_a.valid := !io.cpu.s2_kill &&
     (s2_valid_uncached_pending ||
       (s2_valid_cached_miss &&
-       !(release_ack_wait && release_ack_dirty) &&
+       !(release_ack_wait && (s2_req.addr ^ release_ack_addr)(((pgIdxBits + pgLevelBits) min paddrBits) - 1, idxLSB) === 0) &&
        (cacheParams.acquireBeforeRelease && !release_ack_wait && release_queue_empty || !s2_victim_dirty)))
   tl_out_a.bits := Mux(!s2_uncached, acquire(s2_vaddr, s2_req.addr, s2_grow_param),
     Mux(!s2_write, get,
@@ -736,7 +739,7 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
 
   // Handle an incoming TileLink Probe message
   val block_probe_for_core_progress = blockProbeAfterGrantCount > 0 || lrscValid
-  val block_probe_for_pending_release_ack = release_ack_wait && release_ack_dirty && (tl_out.b.bits.address ^ release_ack_addr)(idxMSB, idxLSB) === 0
+  val block_probe_for_pending_release_ack = release_ack_wait && (tl_out.b.bits.address ^ release_ack_addr)(((pgIdxBits + pgLevelBits) min paddrBits) - 1, idxLSB) === 0
   val block_probe_for_ordering = releaseInFlight || block_probe_for_pending_release_ack || grantInProgress
   metaArb.io.in(6).valid := tl_out.b.valid && (!block_probe_for_core_progress || lrscBackingOff)
   tl_out.b.ready := metaArb.io.in(6).ready && !(block_probe_for_core_progress || block_probe_for_ordering || s1_valid || s2_valid)
@@ -783,16 +786,6 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
   tl_out_c.bits := nackResponseMessage
   val newCoh = Wire(init = probeNewCoh)
   releaseWay := s2_probe_way
-
-  tl_out_c.bits.user.lift(AMBAProt).foreach { x =>
-    x.fetch       := false.B
-    x.secure      := true.B
-    x.privileged  := true.B
-    x.bufferable  := true.B
-    x.modifiable  := true.B
-    x.readalloc   := true.B
-    x.writealloc  := true.B
-  }
 
   if (!usingDataScratchpad) {
     when (s2_victimize) {
@@ -860,7 +853,6 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
       when (releaseDone) { release_state := s_voluntary_write_meta }
       when (tl_out_c.fire() && c_first) {
         release_ack_wait := true
-        release_ack_dirty := inWriteback
         release_ack_addr := probe_bits.address
       }
     }
@@ -868,6 +860,16 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
     tl_out_c.bits.address := probe_bits.address
     tl_out_c.bits.data := s2_data_corrected
     tl_out_c.bits.corrupt := inWriteback && s2_data_error_uncorrectable
+  }
+
+  tl_out_c.bits.user.lift(AMBAProt).foreach { x =>
+    x.fetch       := false.B
+    x.secure      := true.B
+    x.privileged  := true.B
+    x.bufferable  := true.B
+    x.modifiable  := true.B
+    x.readalloc   := true.B
+    x.writealloc  := true.B
   }
 
   dataArb.io.in(2).valid := inWriteback && releaseDataBeat < refillCycles
@@ -892,6 +894,8 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
   io.cpu.resp.bits.replay := false
   io.cpu.s2_uncached := s2_uncached && !s2_hit
   io.cpu.s2_paddr := s2_req.addr
+  io.cpu.s2_gpa := s2_tlb_xcpt.gpa
+  io.cpu.s2_gpa_is_pte := s2_tlb_xcpt.gpa_is_pte
 
   // report whether there are any outstanding accesses.  disregard any
   // slave-port accesses, since they don't affect local memory ordering.
@@ -1105,38 +1109,38 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
 
   if (usingDataScratchpad) {
     val data_error_cover = Seq(
-      CoverBoolean(!data_error, Seq("no_data_error")),
-      CoverBoolean(data_error && !data_error_uncorrectable, Seq("data_correctable_error")),
-      CoverBoolean(data_error && data_error_uncorrectable, Seq("data_uncorrectable_error")))
+      property.CoverBoolean(!data_error, Seq("no_data_error")),
+      property.CoverBoolean(data_error && !data_error_uncorrectable, Seq("data_correctable_error")),
+      property.CoverBoolean(data_error && data_error_uncorrectable, Seq("data_uncorrectable_error")))
     val request_source = Seq(
-      CoverBoolean(s2_isSlavePortAccess, Seq("from_TL")),
-      CoverBoolean(!s2_isSlavePortAccess, Seq("from_CPU")))
+      property.CoverBoolean(s2_isSlavePortAccess, Seq("from_TL")),
+      property.CoverBoolean(!s2_isSlavePortAccess, Seq("from_CPU")))
 
-    cover(new CrossProperty(
+    property.cover(new property.CrossProperty(
       Seq(data_error_cover, request_source),
       Seq(),
       "MemorySystem;;Scratchpad Memory Bit Flip Cross Covers"))
   } else {
 
     val data_error_type = Seq(
-      CoverBoolean(!s2_valid_data_error, Seq("no_data_error")),
-      CoverBoolean(s2_valid_data_error && !s2_data_error_uncorrectable, Seq("data_correctable_error")),
-      CoverBoolean(s2_valid_data_error && s2_data_error_uncorrectable, Seq("data_uncorrectable_error")))
+      property.CoverBoolean(!s2_valid_data_error, Seq("no_data_error")),
+      property.CoverBoolean(s2_valid_data_error && !s2_data_error_uncorrectable, Seq("data_correctable_error")),
+      property.CoverBoolean(s2_valid_data_error && s2_data_error_uncorrectable, Seq("data_uncorrectable_error")))
     val data_error_dirty = Seq(
-      CoverBoolean(!s2_victim_dirty, Seq("data_clean")),
-      CoverBoolean(s2_victim_dirty, Seq("data_dirty")))
+      property.CoverBoolean(!s2_victim_dirty, Seq("data_clean")),
+      property.CoverBoolean(s2_victim_dirty, Seq("data_dirty")))
     val request_source = if (supports_flush) {
         Seq(
-          CoverBoolean(!flushing, Seq("access")),
-          CoverBoolean(flushing, Seq("during_flush")))
+          property.CoverBoolean(!flushing, Seq("access")),
+          property.CoverBoolean(flushing, Seq("during_flush")))
       } else {
-        Seq(CoverBoolean(true.B, Seq("never_flush")))
+        Seq(property.CoverBoolean(true.B, Seq("never_flush")))
       }
     val tag_error_cover = Seq(
-      CoverBoolean( !s2_meta_error, Seq("no_tag_error")),
-      CoverBoolean( s2_meta_error && !s2_meta_error_uncorrectable, Seq("tag_correctable_error")),
-      CoverBoolean( s2_meta_error && s2_meta_error_uncorrectable, Seq("tag_uncorrectable_error")))
-    cover(new CrossProperty(
+      property.CoverBoolean( !s2_meta_error, Seq("no_tag_error")),
+      property.CoverBoolean( s2_meta_error && !s2_meta_error_uncorrectable, Seq("tag_correctable_error")),
+      property.CoverBoolean( s2_meta_error && s2_meta_error_uncorrectable, Seq("tag_uncorrectable_error")))
+    property.cover(new property.CrossProperty(
       Seq(data_error_type, data_error_dirty, request_source, tag_error_cover),
       Seq(),
       "MemorySystem;;Cache Memory Bit Flip Cross Covers"))
@@ -1161,7 +1165,7 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
     (isWrite(req.cmd) && (req.cmd === M_PWR || req.size < log2Ceil(eccBytes)))
 
   def ccover(cond: Bool, label: String, desc: String)(implicit sourceInfo: SourceInfo) =
-    cover(cond, s"DCACHE_$label", "MemorySystem;;" + desc)
+    property.cover(cond, s"DCACHE_$label", "MemorySystem;;" + desc)
   def ccoverNotScratchpad(cond: Bool, label: String, desc: String)(implicit sourceInfo: SourceInfo) =
     if (!usingDataScratchpad) ccover(cond, label, desc)
 
@@ -1175,7 +1179,7 @@ class DCacheModule(outer: DCache) extends HellaCacheModule(outer) {
     res
   }
   def acquire(vaddr: UInt, paddr: UInt, param: UInt): TLBundleA = {
-    if (!edge.manager.anySupportAcquireT) Wire(new TLBundleA(edge.bundle))
+    if (!edge.manager.anySupportAcquireB) Wire(new TLBundleA(edge.bundle))
     else edge.AcquireBlock(UInt(0), paddr >> lgCacheBlockBytes << lgCacheBlockBytes, lgCacheBlockBytes, param)._2
   }
 

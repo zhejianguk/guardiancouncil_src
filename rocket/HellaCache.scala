@@ -109,6 +109,7 @@ trait HasCoreMemOp extends HasL1HellaCacheParameters {
   val size = Bits(width = log2Ceil(coreDataBytes.log2 + 1))
   val signed = Bool()
   val dprv = UInt(width = PRV.SZ)
+  val dv = Bool()
 }
 
 trait HasCoreData extends HasCoreParameters {
@@ -142,6 +143,7 @@ class AlignmentExceptions extends Bundle {
 class HellaCacheExceptions extends Bundle {
   val ma = new AlignmentExceptions
   val pf = new AlignmentExceptions
+  val gf = new AlignmentExceptions
   val ae = new AlignmentExceptions
 }
 
@@ -174,6 +176,8 @@ class HellaCacheIO(implicit p: Parameters) extends CoreBundle()(p) {
   val resp = Valid(new HellaCacheResp).flip
   val replay_next = Bool(INPUT)
   val s2_xcpt = (new HellaCacheExceptions).asInput
+  val s2_gpa = UInt(vaddrBitsExtended.W).asInput
+  val s2_gpa_is_pte = Bool(INPUT)
   val uncached_resp = tileParams.dcache.get.separateUncachedResp.option(Decoupled(new HellaCacheResp).flip)
   val ordered = Bool(INPUT)
   val perf = new HellaCachePerfEvents().asInput
@@ -210,7 +214,7 @@ abstract class HellaCache(staticIdForMetadataUseOnly: Int)(implicit p: Parameter
 
   val module: HellaCacheModule
 
-  def flushOnFenceI = cfg.scratch.isEmpty && !node.edges.out(0).manager.managers.forall(m => !m.supportsAcquireT || !m.executable || m.regionType >= RegionType.TRACKED || m.regionType <= RegionType.IDEMPOTENT)
+  def flushOnFenceI = cfg.scratch.isEmpty && !node.edges.out(0).manager.managers.forall(m => !m.supportsAcquireB || !m.executable || m.regionType >= RegionType.TRACKED || m.regionType <= RegionType.IDEMPOTENT)
 
   def canSupportCFlushLine = !usingVM || cfg.blockBytes * cfg.nSets <= (1 << pgIdxBits)
 

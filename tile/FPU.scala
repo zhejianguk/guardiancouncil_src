@@ -6,14 +6,14 @@ package freechips.rocketchip.tile
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import Chisel.ImplicitConversions._
-import chisel3.{DontCare, WireInit, withClock}
+import chisel3.{DontCare, WireInit, withClock, withReset}
 import chisel3.internal.sourceinfo.SourceInfo
 import chisel3.experimental.{chiselName, NoChiselNamePrefix}
 import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.rocket._
 import freechips.rocketchip.rocket.Instructions._
 import freechips.rocketchip.util._
-import freechips.rocketchip.util.property._
+import freechips.rocketchip.util.property
 
 case class FPUParams(
   minFLen: Int = 32,
@@ -231,7 +231,6 @@ class FPInput(implicit p: Parameters) extends CoreBundle()(p) with HasFPUCtrlSig
   val in2 = Bits(width = fLen+1)
   val in3 = Bits(width = fLen+1)
 
-  override def cloneType = new FPInput().asInstanceOf[this.type]
 }
 
 case class FType(exp: Int, sig: Int) {
@@ -283,7 +282,6 @@ case class FType(exp: Int, sig: Int) {
       val sign = Bool()
       val exp = UInt(expWidth.W)
       val sig = UInt((ieeeWidth-expWidth-1).W)
-      override def cloneType = new IEEEBundle().asInstanceOf[this.type]
     }
     new IEEEBundle
   }
@@ -452,7 +450,6 @@ class FPToInt(implicit p: Parameters) extends FPUModule()(p) with ShouldBeRetime
     val store = Bits(width = fLen)
     val toint = Bits(width = xLen)
     val exc = Bits(width = FPConstants.FLAGS_SZ)
-    override def cloneType = new Output().asInstanceOf[this.type]
   }
   val io = new Bundle {
     val in = Valid(new FPInput).flip
@@ -903,7 +900,6 @@ class FPU(cfg: FPUParams)(implicit p: Parameters) extends FPUModule()(p) {
     val typeTag = UInt(width = log2Up(floatTypes.size))
     val cp = Bool()
     val pipeid = UInt(width = log2Ceil(pipes.size))
-    override def cloneType: this.type = new WBInfo().asInstanceOf[this.type]
   }
 
   val wen = Reg(init=Bits(0, maxLatency-1))
@@ -971,15 +967,20 @@ class FPU(cfg: FPUParams)(implicit p: Parameters) extends FPUModule()(p) {
   io.illegal_rm := io.inst(14,12).isOneOf(5, 6) || io.inst(14,12) === 7 && io.fcsr_rm >= 5
 
   if (cfg.divSqrt) {
-    val divSqrt_killed = Reg(Bool())
+    val divSqrt_inValid = mem_reg_valid && (mem_ctrl.div || mem_ctrl.sqrt) && !divSqrt_inFlight
+    val divSqrt_killed = RegNext(divSqrt_inValid && killm, true.B)
+    when (divSqrt_inValid) {
+      divSqrt_waddr := mem_reg_inst(11,7)
+    }
+
     ccover(divSqrt_inFlight && divSqrt_killed, "DIV_KILLED", "divide killed after issued to divider")
     ccover(divSqrt_inFlight && mem_reg_valid && (mem_ctrl.div || mem_ctrl.sqrt), "DIV_BUSY", "divider structural hazard")
     ccover(mem_reg_valid && divSqrt_write_port_busy, "DIV_WB_STRUCTURAL", "structural hazard on division writeback")
 
     for (t <- floatTypes) {
       val tag = mem_ctrl.typeTagOut
-      val divSqrt = Module(new hardfloat.DivSqrtRecFN_small(t.exp, t.sig, 0))
-      divSqrt.io.inValid := mem_reg_valid && tag === typeTag(t) && (mem_ctrl.div || mem_ctrl.sqrt) && !divSqrt_inFlight
+      val divSqrt = withReset(divSqrt_killed) { Module(new hardfloat.DivSqrtRecFN_small(t.exp, t.sig, 0)) }
+      divSqrt.io.inValid := divSqrt_inValid && tag === typeTag(t)
       divSqrt.io.sqrtOp := mem_ctrl.sqrt
       divSqrt.io.a := maxType.unsafeConvert(fpiu.io.out.bits.in.in1, t)
       divSqrt.io.b := maxType.unsafeConvert(fpiu.io.out.bits.in.in2, t)
@@ -988,11 +989,6 @@ class FPU(cfg: FPUParams)(implicit p: Parameters) extends FPUModule()(p) {
 
       when (!divSqrt.io.inReady) { divSqrt_inFlight := true } // only 1 in flight
 
-      when (divSqrt.io.inValid && divSqrt.io.inReady) {
-        divSqrt_killed := killm
-        divSqrt_waddr := mem_reg_inst(11,7)
-      }
-
       when (divSqrt.io.outValid_div || divSqrt.io.outValid_sqrt) {
         divSqrt_wen := !divSqrt_killed
         divSqrt_wdata := sanitizeNaN(divSqrt.io.out, t)
@@ -1000,6 +996,8 @@ class FPU(cfg: FPUParams)(implicit p: Parameters) extends FPUModule()(p) {
         divSqrt_typeTag := typeTag(t)
       }
     }
+
+    when (divSqrt_killed) { divSqrt_inFlight := false }
   } else {
     when (id_ctrl.div || id_ctrl.sqrt) { io.illegal_rm := true }
   }
@@ -1018,5 +1016,5 @@ class FPU(cfg: FPUParams)(implicit p: Parameters) extends FPUModule()(p) {
   val fpuImpl = withClock (gated_clock) { new FPUImpl }
 
   def ccover(cond: Bool, label: String, desc: String)(implicit sourceInfo: SourceInfo) =
-    cover(cond, s"FPU_$label", "Core;;" + desc)
+    property.cover(cond, s"FPU_$label", "Core;;" + desc)
 }

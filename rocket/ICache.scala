@@ -11,7 +11,7 @@ import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.tile._
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.util.{DescribedSRAM, _}
-import freechips.rocketchip.util.property._
+import freechips.rocketchip.util.property
 import chisel3.internal.sourceinfo.SourceInfo
 import chisel3.dontTouch
 import chisel3.util.random.LFSR
@@ -104,7 +104,6 @@ class ICacheResp(outer: ICache) extends Bundle {
   val replay = Bool()
   val ae = Bool()
 
-  override def cloneType = new ICacheResp(outer).asInstanceOf[this.type]
 }
 
 class ICachePerfEvents extends Bundle {
@@ -298,8 +297,12 @@ class ICacheModule(outer: ICache) extends LazyModuleImp(outer)
     }
   }
 
+  // When writing a full scratchpad word, suppress the read so Xs don't leak out
+  val s1s2_full_word_write = Wire(init = false.B)
+  val s1_dont_read = s1_slaveValid && s1s2_full_word_write
+
   val s1_clk_en = s1_valid || s1_slaveValid
-  val s2_tag_hit = RegEnable(s1_tag_hit, s1_clk_en)
+  val s2_tag_hit = RegEnable(Mux(s1_dont_read, 0.U.asTypeOf(s1_tag_hit), s1_tag_hit), s1_clk_en)
   val s2_hit_way = OHToUInt(s2_tag_hit)
   val s2_scratchpad_word_addr = Cat(s2_hit_way, Mux(s2_slaveValid, s1s3_slaveAddr, io.s2_vaddr)(untagBits-1, log2Ceil(wordBits/8)), UInt(0, log2Ceil(wordBits/8)))
   val s2_dout = RegEnable(s1_dout, s1_clk_en)
@@ -309,11 +312,10 @@ class ICacheModule(outer: ICache) extends LazyModuleImp(outer)
   val s2_tl_error = RegEnable(s1_tl_error.asUInt.orR, s1_clk_en)
   val s2_data_decoded = dECC.decode(s2_way_mux)
   val s2_disparity = s2_tag_disparity || s2_data_decoded.error
-  val s2_full_word_write = Wire(init = false.B)
 
   val s1_scratchpad_hit = Mux(s1_slaveValid, lineInScratchpad(scratchpadLine(s1s3_slaveAddr)), addrInScratchpad(io.s1_paddr))
   val s2_scratchpad_hit = RegEnable(s1_scratchpad_hit, s1_clk_en)
-  val s2_report_uncorrectable_error = s2_scratchpad_hit && s2_data_decoded.uncorrectable && (s2_valid || (s2_slaveValid && !s2_full_word_write))
+  val s2_report_uncorrectable_error = s2_scratchpad_hit && s2_data_decoded.uncorrectable && (s2_valid || (s2_slaveValid && !s1s2_full_word_write))
   val s2_error_addr = scratchpadBase.map(base => Mux(s2_scratchpad_hit, base + s2_scratchpad_word_addr, 0.U)).getOrElse(0.U)
 
   // output signals
@@ -348,7 +350,7 @@ class ICacheModule(outer: ICache) extends LazyModuleImp(outer)
         val respValid = RegInit(false.B)
         tl.a.ready := !(tl_out.d.valid || s1_slaveValid || s2_slaveValid || s3_slaveValid || respValid || !io.clock_enabled)
         val s1_a = RegEnable(tl.a.bits, s0_slaveValid)
-        s2_full_word_write := edge_in.get.hasData(s1_a) && s1_a.mask.andR
+        s1s2_full_word_write := edge_in.get.hasData(s1_a) && s1_a.mask.andR
         when (s0_slaveValid) {
           val a = tl.a.bits
           s1s3_slaveAddr := tl.a.bits.address
@@ -387,7 +389,7 @@ class ICacheModule(outer: ICache) extends LazyModuleImp(outer)
         }
 
         respValid := s2_slaveValid || (respValid && !tl.d.ready)
-        val respError = RegEnable(s2_scratchpad_hit && s2_data_decoded.uncorrectable && !s2_full_word_write, s2_slaveValid)
+        val respError = RegEnable(s2_scratchpad_hit && s2_data_decoded.uncorrectable && !s1s2_full_word_write, s2_slaveValid)
         when (s2_slaveValid) {
           when (edge_in.get.hasData(s1_a) || s2_data_decoded.error) { s3_slaveValid := true }
           def byteEn(i: Int) = !(edge_in.get.hasData(s1_a) && s1_a.mask(i))
@@ -489,27 +491,27 @@ class ICacheModule(outer: ICache) extends LazyModuleImp(outer)
   ccover(invalidate && refill_valid, "FLUSH_DURING_MISS", "I$ flushed during miss")
 
   def ccover(cond: Bool, label: String, desc: String)(implicit sourceInfo: SourceInfo) =
-    cover(cond, s"ICACHE_$label", "MemorySystem;;" + desc)
+    property.cover(cond, s"ICACHE_$label", "MemorySystem;;" + desc)
 
-  val mem_active_valid = Seq(CoverBoolean(s2_valid, Seq("mem_active")))
+  val mem_active_valid = Seq(property.CoverBoolean(s2_valid, Seq("mem_active")))
   val data_error = Seq(
-    CoverBoolean(!s2_data_decoded.correctable && !s2_data_decoded.uncorrectable, Seq("no_data_error")),
-    CoverBoolean(s2_data_decoded.correctable, Seq("data_correctable_error")),
-    CoverBoolean(s2_data_decoded.uncorrectable, Seq("data_uncorrectable_error")))
+    property.CoverBoolean(!s2_data_decoded.correctable && !s2_data_decoded.uncorrectable, Seq("no_data_error")),
+    property.CoverBoolean(s2_data_decoded.correctable, Seq("data_correctable_error")),
+    property.CoverBoolean(s2_data_decoded.uncorrectable, Seq("data_uncorrectable_error")))
   val request_source = Seq(
-    CoverBoolean(!s2_slaveValid, Seq("from_CPU")),
-    CoverBoolean(s2_slaveValid, Seq("from_TL"))
+    property.CoverBoolean(!s2_slaveValid, Seq("from_CPU")),
+    property.CoverBoolean(s2_slaveValid, Seq("from_TL"))
   )
   val tag_error = Seq(
-    CoverBoolean(!s2_tag_disparity, Seq("no_tag_error")),
-    CoverBoolean(s2_tag_disparity, Seq("tag_error"))
+    property.CoverBoolean(!s2_tag_disparity, Seq("no_tag_error")),
+    property.CoverBoolean(s2_tag_disparity, Seq("tag_error"))
   )
   val mem_mode = Seq(
-    CoverBoolean(s2_scratchpad_hit, Seq("ITIM_mode")),
-    CoverBoolean(!s2_scratchpad_hit, Seq("cache_mode"))
+    property.CoverBoolean(s2_scratchpad_hit, Seq("ITIM_mode")),
+    property.CoverBoolean(!s2_scratchpad_hit, Seq("cache_mode"))
   )
 
-  val error_cross_covers = new CrossProperty(
+  val error_cross_covers = new property.CrossProperty(
     Seq(mem_active_valid, data_error, tag_error, request_source, mem_mode),
     Seq(
       // tag error cannot occur in ITIM mode
@@ -519,5 +521,5 @@ class ICacheModule(outer: ICache) extends LazyModuleImp(outer)
     ),
     "MemorySystem;;Memory Bit Flip Cross Covers")
 
-  cover(error_cross_covers)
+  property.cover(error_cross_covers)
 }

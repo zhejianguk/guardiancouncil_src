@@ -15,6 +15,7 @@ case object C extends OMExtensionType
 case object B extends OMExtensionType
 case object U extends OMExtensionType
 case object S extends OMExtensionType
+case object H extends OMExtensionType
 
 trait OMAddressTranslationMode extends OMEnum
 case object Bare extends OMAddressTranslationMode
@@ -44,6 +45,7 @@ case class OMISA(
   v: Option[OMVectorExtension] = None,
   u: Option[OMSpecification],
   s: Option[OMSpecification],
+  h: Option[OMSpecification],
   addressTranslationModes: Seq[OMAddressTranslationMode],
   customExtensions: Seq[OMCustomExtensionSpecification],
   _types: Seq[String] = Seq("OMISA", "OMCompoundType")
@@ -102,9 +104,10 @@ object OMISA {
       a = coreParams.useAtomics.option(isaExtSpec(A, "2.0")),
       f = coreParams.fpu.map(x => isaExtSpec(F, "2.0")),
       d = coreParams.fpu.filter(_.fLen > 32).map(x => isaExtSpec(D, "2.0")),
-      c = coreParams.useCompressed.option(isaExtSpec(C, " 2.0")),
+      c = coreParams.useCompressed.option(isaExtSpec(C, "2.0")),
       u = (coreParams.hasSupervisorMode || coreParams.useUser).option(isaExtSpec(U, "1.10")),
       s = coreParams.hasSupervisorMode.option(isaExtSpec(S, "1.10")),
+      h = coreParams.useHypervisor.option(isaExtSpec(H, "0.6")),
       addressTranslationModes = Seq(addressTranslationModes),
       customExtensions = customExtensions
     )
