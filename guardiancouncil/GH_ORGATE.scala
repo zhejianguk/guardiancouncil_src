@@ -37,14 +37,6 @@ class GH_ORGATE (val params: ORGATEParams) extends Module with HasORGATEIO {
                                                   io.in(4) |
                                                   io.in(5) |
                                                   io.in(6) |
-                                                  io.in(7) |
-                                                  io.in(8) |
-                                                  io.in(9) |
-                                                  io.in(10)|
-                                                  io.in(11)|
-                                                  io.in(12)|
-                                                  io.in(13)|
-                                                  io.in(14)|
-                                                  io.in(15)
+                                                  io.in(7)
 }
 
