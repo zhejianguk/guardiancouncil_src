@@ -2,8 +2,7 @@ package freechips.rocketchip.guardiancouncil
 
 import chisel3._
 import chisel3.util._
-import chisel3.stage.ChiselStage
-import chisel3.experimental.{IntParam, BaseModule}
+import chisel3.experimental.{BaseModule}
 
 case class FIFOParams(
   width: Int,

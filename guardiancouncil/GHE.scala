@@ -54,23 +54,23 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     channel_warning            := u_channel.io.status_warning
 
     // Software Funcs
-    val doCheck                 = (cmd.fire() && (funct === 0x00.U))
-    val doEvent                 = (cmd.fire() && (funct === 0x01.U))
-    val doCheckBigStatus        = (cmd.fire() && (funct === 0x07.U))
-    val doTop_FirstHalf         = (cmd.fire() && (funct === 0x0A.U) && !channel_empty)
-    val doPop_FirstHalf         = (cmd.fire() && (funct === 0x0B.U) && !channel_empty)
-    val doTop_SecondHalf        = (cmd.fire() && (funct === 0x0C.U) && !channel_empty)
-    val doPop_SecondHalf        = (cmd.fire() && (funct === 0x0D.U) && !channel_empty)
-    val doCheckAgg              = (cmd.fire() && (funct === 0x10.U))
-    val doPushAgg               = (cmd.fire() && (funct === 0x11.U) && !io.agg_buffer_full)
-    val doCheckSch              = (cmd.fire() && (funct === 0x20.U))
-    val doRefreshSch            = (cmd.fire() && (funct === 0x21.U))
+    val doCheck                 = (cmd.fire && (funct === 0x00.U))
+    val doEvent                 = (cmd.fire && (funct === 0x01.U))
+    val doCheckBigStatus        = (cmd.fire && (funct === 0x07.U))
+    val doTop_FirstHalf         = (cmd.fire && (funct === 0x0A.U) && !channel_empty)
+    val doPop_FirstHalf         = (cmd.fire && (funct === 0x0B.U) && !channel_empty)
+    val doTop_SecondHalf        = (cmd.fire && (funct === 0x0C.U) && !channel_empty)
+    val doPop_SecondHalf        = (cmd.fire && (funct === 0x0D.U) && !channel_empty)
+    val doCheckAgg              = (cmd.fire && (funct === 0x10.U))
+    val doPushAgg               = (cmd.fire && (funct === 0x11.U) && !io.agg_buffer_full)
+    val doCheckSch              = (cmd.fire && (funct === 0x20.U))
+    val doRefreshSch            = (cmd.fire && (funct === 0x21.U))
 
     // For big core
-    val doBigCheck              = (cmd.fire() && (funct === 0x6.U))
-    val doMask                  = (cmd.fire() && (funct === 0x6.U) && (rs2_val === 1.U))
-    val doGHT_Cfg               = (cmd.fire() && (funct === 0x6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
-    val doGHTBufferCheck        = (cmd.fire() && (funct === 0x8.U)) 
+    val doBigCheck              = (cmd.fire && (funct === 0x6.U))
+    val doMask                  = (cmd.fire && (funct === 0x6.U) && (rs2_val === 1.U))
+    val doGHT_Cfg               = (cmd.fire && (funct === 0x6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
+    val doGHTBufferCheck        = (cmd.fire && (funct === 0x8.U)) 
     val bigComp                 = io.bigcore_comp
 
 
