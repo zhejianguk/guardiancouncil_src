@@ -18,7 +18,6 @@ class FIFOIO(params: FIFOParams) extends Bundle {
   val deq_bits = Output(UInt(params.width.W))
   val status_warning = Output(UInt(1.W))
   val status_nearfull = Output(UInt(1.W))
-  val status_leftthree = Output(UInt(1.W))
 }
 
 trait HasFIFOIO extends BaseModule {
@@ -38,7 +37,8 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
   }
 
   // the register based memory
-  val memReg                    = RegInit(VecInit(Seq.fill(params.depth)(0.U(params.width.W))))
+  // val memReg                    = RegInit(VecInit(Seq.fill(params.depth)(0.U(params.width.W))))
+
   val incrRead                  = WireInit(false.B)
   val incrWrite                 = WireInit(false.B)
 
@@ -81,10 +81,6 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
   io.status_nearfull           := Mux(num_content > ((params.depth).U - 4.U - 1.U), // Avoding hang-up the big_core
                                       1.U, 
                                       0.U)
-
-  io.status_leftthree          := Mux(num_content > ((params.depth).U - 3.U),
-                                    1.U, 
-                                    0.U)
 
   io.deq_bits                  := memReg(readPtr)
   io.full                      := fullReg
