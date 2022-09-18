@@ -37,7 +37,7 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
   }
 
   // the register based memory
-  // val memReg                    = RegInit(VecInit(Seq.fill(params.depth)(0.U(params.width.W))))
+  val memReg                    = RegInit(VecInit(Seq.fill(params.depth)(0.U(params.width.W))))
 
   val incrRead                  = WireInit(false.B)
   val incrWrite                 = WireInit(false.B)
