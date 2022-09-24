@@ -104,7 +104,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     new_packet(i)                              := Mux(filter_packet(i) =/= 0.U, 1.U, 0.U)                                             
     buffer_enq_data(i)                         := Cat(filter_inst_index(i), filter_packet(i))
   }
-  doPush                                       := new_packet(0)|new_packet(1)|new_packet(2)|new_packet(3)
+  doPush                                       := new_packet.reduce(_|_)
   buffer_enq_valid                             := Mux(doPush === 1.U, true.B, false.B)
 
   
@@ -130,7 +130,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val fsm_first_nxt_state                       = WireInit(fsm_reset)
   val fsm_second_nxt_state                      = WireInit(fsm_reset)
   val fsm_third_nxt_state                       = WireInit(fsm_reset)
-  val fsm_fourth_nxt_state                      = WireInit(fsm_reset)
+  // val fsm_fourth_nxt_state                      = WireInit(fsm_reset)
 
   switch (fsm_state) {
     is (fsm_reset){
@@ -176,7 +176,8 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         buffer_deq_valid                       := false.B
       }
     }
-
+/*     These are used for 4-width Boom
+    // There are some work is required to make them generic
     is (fsm_send_third){
       when (!io.ght_stall){
         fsm_state                              := fsm_third_nxt_state
@@ -205,8 +206,22 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         buffer_deq_valid                       := false.B
       }
     }
+  */
+    is (fsm_send_third){
+      when (!io.ght_stall){
+        fsm_state                              := fsm_third_nxt_state
+        packet                                 := buffer_packet(2)
+        inst_type                              := buffer_inst_type(2)
+        buffer_deq_valid                       := true.B
+      }.otherwise{
+        fsm_state                              := fsm_send_third
+        buffer_deq_valid                       := false.B
+      }
+    }
   }
 
+  /* These are used for 4-width Boom
+  // There are some work is required to make them generic
   fsm_reset_nxt_state                          := MuxCase(fsm_reset, 
                                                     Array((buffer_inst_type(0) =/= 0.U)  -> fsm_send_first,
                                                           ((buffer_inst_type(0) === 0.U) && (buffer_inst_type(1) =/= 0.U))  -> fsm_send_second,
@@ -237,7 +252,37 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
                                                           )
 
   fsm_fourth_nxt_state                        := fsm_reset
+  */
   
+  // These are used for 3-width Boom
+  // There are some work is required to make them generic
+
+  fsm_reset_nxt_state                          := MuxCase(fsm_reset, 
+                                                    Array((buffer_inst_type(0) =/= 0.U)  -> fsm_send_first,
+                                                          ((buffer_inst_type(0) === 0.U) && (buffer_inst_type(1) =/= 0.U)) -> fsm_send_second,
+                                                          ((buffer_inst_type(0) === 0.U) && (buffer_inst_type(1) === 0.U) && (buffer_inst_type(2) =/= 0.U)) -> fsm_send_third
+                                                          )
+                                                          )
+
+  fsm_first_nxt_state                          := MuxCase(fsm_reset, 
+                                                    Array((buffer_inst_type(1) =/= 0.U)  -> fsm_send_second,
+                                                          ((buffer_inst_type(1) === 0.U) && (buffer_inst_type(2) =/= 0.U)) -> fsm_send_third,
+                                                          ((buffer_inst_type(1) === 0.U) && (buffer_inst_type(2) === 0.U)) -> fsm_reset
+                                                          )
+                                                          )
+
+  fsm_second_nxt_state                         := MuxCase(fsm_reset, 
+                                                    Array((buffer_inst_type(2) =/= 0.U) -> fsm_send_third,
+                                                          ((buffer_inst_type(2) === 0.U)) -> fsm_reset
+                                                          )
+                                                          )
+
+  fsm_third_nxt_state                         := fsm_reset
+
+
+
+
+
   // Outputs
   io.ght_ft_inst_index                        := inst_type
   io.packet_out                               := packet
