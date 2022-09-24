@@ -19,6 +19,6 @@ trait HasORGATEIO extends BaseModule {
 }
 
 class GH_ORGATE (val params: ORGATEParams) extends Module with HasORGATEIO {
-  io.out                                       := io.in(0).reduce(_|_)
+  io.out                                       := io.in.reduce(_|_)
 }
 
