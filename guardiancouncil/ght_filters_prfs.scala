@@ -130,7 +130,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val fsm_first_nxt_state                       = WireInit(fsm_reset)
   val fsm_second_nxt_state                      = WireInit(fsm_reset)
   val fsm_third_nxt_state                       = WireInit(fsm_reset)
-  // val fsm_fourth_nxt_state                      = WireInit(fsm_reset)
+  val fsm_fourth_nxt_state                      = WireInit(fsm_reset)
 
   switch (fsm_state) {
     is (fsm_reset){
@@ -176,7 +176,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         buffer_deq_valid                       := false.B
       }
     }
-/*     These are used for 4-width Boom
+    // These are used for 4-width Boom
     // There are some work is required to make them generic
     is (fsm_send_third){
       when (!io.ght_stall){
@@ -206,7 +206,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         buffer_deq_valid                       := false.B
       }
     }
-  */
+  /* These are used for 3-width Boom
     is (fsm_send_third){
       when (!io.ght_stall){
         fsm_state                              := fsm_third_nxt_state
@@ -218,9 +218,10 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         buffer_deq_valid                       := false.B
       }
     }
+  */
   }
 
-  /* These are used for 4-width Boom
+  // These are used for 4-width Boom
   // There are some work is required to make them generic
   fsm_reset_nxt_state                          := MuxCase(fsm_reset, 
                                                     Array((buffer_inst_type(0) =/= 0.U)  -> fsm_send_first,
@@ -252,9 +253,9 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
                                                           )
 
   fsm_fourth_nxt_state                        := fsm_reset
-  */
+
   
-  // These are used for 3-width Boom
+  /* These are used for 3-width Boom
   // There are some work is required to make them generic
 
   fsm_reset_nxt_state                          := MuxCase(fsm_reset, 
@@ -278,7 +279,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
                                                           )
 
   fsm_third_nxt_state                         := fsm_reset
-
+  */
 
 
 
