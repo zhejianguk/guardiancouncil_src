@@ -142,6 +142,32 @@ class WithNMedCores(n: Int, overrideIdOffset: Option[Int] = None) extends Config
   }
 })
 
+class WithNGCCheckers(n: Int, overrideIdOffset: Option[Int] = None) extends Config((site, here, up) => {
+  case RocketTilesKey => {
+    val prev = up(RocketTilesKey, site)
+    val idOffset = overrideIdOffset.getOrElse(prev.size)
+    val med = RocketTileParams(
+      core = RocketCoreParams(),
+      btb = None,
+      dcache = Some(DCacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nSets = 32,
+        nWays = 2,
+        nTLBSets = 1,
+        nTLBWays = 4,
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes))),
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        nSets = 32,
+        nWays = 2,
+        nTLBSets = 1,
+        nTLBWays = 4,
+        blockBytes = site(CacheBlockBytes))))
+    List.tabulate(n)(i => med.copy(hartId = i + idOffset)) ++ prev
+  }
+})
+
 class WithNSmallCores(n: Int, overrideIdOffset: Option[Int] = None) extends Config((site, here, up) => {
   case RocketTilesKey => {
     val prev = up(RocketTilesKey, site)
