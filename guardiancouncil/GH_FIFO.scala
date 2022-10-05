@@ -18,6 +18,7 @@ class FIFOIO(params: FIFOParams) extends Bundle {
   val deq_bits = Output(UInt(params.width.W))
   val status_warning = Output(UInt(1.W))
   val status_nearfull = Output(UInt(1.W))
+  val status_threeslots = Output(UInt(1.W))
 }
 
 trait HasFIFOIO extends BaseModule {
@@ -79,6 +80,10 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
                                       0.U)
 
   io.status_nearfull           := Mux(num_content > ((params.depth).U - 4.U - 1.U), // Avoding hang-up the big_core
+                                      1.U, 
+                                      0.U)
+  
+  io.status_threeslots         := Mux(num_content > ((params.depth).U - 3.U),
                                       1.U, 
                                       0.U)
 

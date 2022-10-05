@@ -29,8 +29,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Communication channel
     // Widith: xLen*2
-    // Depth: 32
-    val u_channel               = Module (new GH_FIFO(FIFOParams ((2*xLen), 32))) 
+    // Depth: 24
+    val u_channel               = Module (new GH_FIFO(FIFOParams ((2*xLen), 24))) 
 
 
     // Internal signals
@@ -70,9 +70,11 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doBigCheck              = (cmd.fire && (funct === 0x6.U))
     val doMask                  = (cmd.fire && (funct === 0x6.U) && (rs2_val === 1.U))
     val doGHT_Cfg               = (cmd.fire && (funct === 0x6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
-    val doGHTBufferCheck        = (cmd.fire && (funct === 0x8.U)) 
+    val doGHTBufferCheck        = (cmd.fire && (funct === 0x8.U))
+    val doCheckM_PPN            = (cmd.fire && (funct === 0x17.U))
+    val doCheckM_SysMode        = (cmd.fire && (funct === 0x18.U))
     val bigComp                 = io.bigcore_comp
-
+  
 
     val ghe_packet_in           = io.ghe_packet_in
     val doPush                  = (ghe_packet_in =/= 0.U) && !channel_full
@@ -81,7 +83,11 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val ghe_status_reg          = RegInit(0x0.U(32.W))
     val ghe_event_reg           = RegInit(0x0.U(2.W))
 
-
+    val ght_status_reg          = RegInit(0.U(32.W))
+    val ght_monitor_satp_ppn    = RegInit(0.U(44.W))
+    val ght_monitor_sys_mode    = RegInit(0.U(2.W))
+    val has_monitor_target      = RegInit(0.U(1.W))
+    
     // Check status
     // 0b01: empty
     // 0b10: full
@@ -98,6 +104,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val zeros_channel_status    = WireInit(0.U((xLen-2).W))
     val zeros_63bits            = WireInit(0.U(63.W))
     val zeros_62bits            = WireInit(0.U(62.W))
+    val zeros_20bits            = WireInit(0.U(20.W))
     val zeros_1bit              = WireInit(0.U(1.W))
 
     rd_val                     := MuxCase(0.U, 
@@ -110,7 +117,9 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doCheckAgg          -> Cat(zeros_62bits, io.agg_buffer_full, zeros_1bit),
                                           doCheckSch          -> Cat(zeros_63bits, channel_sch_na),
                                           doBigCheck          -> Cat(bigComp, rs1_val(15, 0)),
-                                          doGHTBufferCheck    -> Cat(zeros_62bits, io.ght_buffer_status)
+                                          doGHTBufferCheck    -> Cat(zeros_62bits, io.ght_buffer_status),
+                                          doCheckM_PPN        -> Cat(zeros_20bits, ght_monitor_satp_ppn),
+                                          doCheckM_SysMode    -> Cat(zeros_62bits, ght_monitor_sys_mode)
                                           )
                                           )
     when (doEvent) {
@@ -143,10 +152,16 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // 1: test is started
     // 2: test is finished 
     // Registers 
-    val ght_status_reg          = RegInit(0.U(32.W)) 
     when (doMask) {
       ght_status_reg           := rs1_val
     }
+
+    when (doMask && (rs1_val === 1.U) && (has_monitor_target === 0.U)) {
+      ght_monitor_satp_ppn     := io.ght_satp_ppn
+      ght_monitor_sys_mode     := io.ght_sys_mode
+      has_monitor_target       := 1.U
+    }
+
     io.ght_cfg_out             := Mux(doGHT_Cfg, rs1_val(31,0), 0.U) 
     io.ght_cfg_valid           := Mux(doGHT_Cfg, 1.U, 0.U)
     io.ght_mask_out            := ~(ght_status_reg(0))

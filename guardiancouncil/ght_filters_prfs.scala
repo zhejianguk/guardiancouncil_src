@@ -57,7 +57,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val inst_type                                 = WireInit(0.U(5.W))
 
   val u_ght_filters                             = Seq.fill(params.core_width) {Module(new GHT_FILTER_PRFS(GHT_FILTER_PRFS_Params(params.xlen, params.totaltypes_of_insts, params.packet_size, params.use_prfs)))}
-  val u_buffer                                  = Seq.fill(params.core_width) {Module(new GH_FIFO(FIFOParams (buffer_width, 12)))}
+  val u_buffer                                  = Seq.fill(params.core_width) {Module(new GH_FIFO(FIFOParams (buffer_width, 10)))}
 
   // Connecting filters
   val filter_inst_index                         = WireInit(VecInit(Seq.fill(params.core_width)(0.U(5.W))))
@@ -287,6 +287,6 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   // Outputs
   io.ght_ft_inst_index                        := inst_type
   io.packet_out                               := packet
-  io.core_hang_up                             := u_buffer(0).io.status_warning
+  io.core_hang_up                             := u_buffer(0).io.status_threeslots
   io.ght_buffer_status                        := Cat(buffer_full(0), buffer_empty(0))
 }

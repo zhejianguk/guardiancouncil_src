@@ -62,6 +62,9 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val ght_sch_refresh = Input(UInt(1.W))
   val ght_sch_dorefresh = Output(UInt(32.W))
   val ght_buffer_status = Input(UInt(2.W))
+
+  val ght_satp_ppn  = Input(UInt(44.W))
+  val ght_sys_mode  = Input(UInt(2.W))
   //===== GuardianCouncil Function: End   ====//
 }
 
@@ -531,6 +534,9 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
 
     val ght_sch_dorefresh_in = Input(UInt(32.W))
     val ght_sch_dorefresh_out = Output(UInt(32.W))
+
+    val ght_satp_ppn  = Input(UInt(44.W))
+    val ght_sys_mode  = Input(UInt(2.W))
     //===== GuardianCouncil Function: End   ====//
   }
 
