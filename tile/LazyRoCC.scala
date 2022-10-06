@@ -472,6 +472,9 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
 
     val ght_sch_dorefresh_in = Input(UInt(32.W))
     val ght_sch_dorefresh_out = Output(UInt(32.W))
+
+    val if_correct_process_in = Input(UInt(1.W))
+    val if_correct_process_out = Output(UInt(1.W))
     //===== GuardianCouncil Function: End   ====//
   }
 
@@ -496,6 +499,7 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   io.ght_sch_na_out := io.ght_sch_na_in
   io.ght_sch_dorefresh_out := io.ght_sch_dorefresh_in
 
+  io.if_correct_process_out := io.if_correct_process_in
   //===== GuardianCouncil Function: End   ====//
   assert(PopCount(cmdReadys) <= 1.U,
     "Custom opcode matched for more than one accelerator")
@@ -538,6 +542,7 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
 
     val ght_satp_ppn  = Input(UInt(44.W))
     val ght_sys_mode  = Input(UInt(2.W))
+
     val if_correct_process_in = Input(UInt(1.W))
     val if_correct_process_out = Output(UInt(1.W))
     //===== GuardianCouncil Function: End   ====//
@@ -563,7 +568,7 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   io.agg_core_full_out := io.agg_core_full_in
   io.ght_sch_na_out := io.ght_sch_na_in
   io.ght_sch_dorefresh_out := io.ght_sch_dorefresh_in
-
+  io.if_correct_process_out := io.if_correct_process_in
   //===== GuardianCouncil Function: End   ====//
   assert(PopCount(cmdReadys) <= 1.U,
     "Custom opcode matched for more than one accelerator")

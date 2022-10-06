@@ -146,8 +146,8 @@ class WithNGCCheckers(n: Int, overrideIdOffset: Option[Int] = None) extends Conf
   case RocketTilesKey => {
     val prev = up(RocketTilesKey, site)
     val idOffset = overrideIdOffset.getOrElse(prev.size)
-    val med = RocketTileParams(
-      core = RocketCoreParams(),
+    val checker = RocketTileParams(
+      core = RocketCoreParams(useDebug = false),
       btb = None,
       dcache = Some(DCacheParams(
         rowBits = site(SystemBusKey).beatBits,
