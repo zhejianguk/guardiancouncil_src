@@ -164,7 +164,7 @@ class WithNGCCheckers(n: Int, overrideIdOffset: Option[Int] = None) extends Conf
         nTLBSets = 1,
         nTLBWays = 4,
         blockBytes = site(CacheBlockBytes))))
-    List.tabulate(n)(i => med.copy(hartId = i + idOffset)) ++ prev
+    List.tabulate(n)(i => checker.copy(hartId = i + idOffset)) ++ prev
   }
 })
 
