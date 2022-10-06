@@ -132,6 +132,7 @@ trait HasLazyRoCCModule extends CanHavePTWModule
       rocc.module.io.ght_sch_refresh := cmdRouter.io.ght_sch_refresh
       rocc.module.io.ght_buffer_status := cmdRouter.io.ght_buffer_status
       cmdRouter.io.ght_sch_dorefresh_in := rocc.module.io.ght_sch_dorefresh
+      cmdRouter.io.if_correct_process := rocc.module.io.if_correct_process
       //===== GuardianCouncil Function: End   ====//
     }
 
