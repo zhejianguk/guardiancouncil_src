@@ -89,6 +89,6 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
 
   io.deq_bits                  := memReg(readPtr)
   io.full                      := fullReg
-  io.empty                     := Mux(io.enq_valid, false.B, emptyReg)
+  io.empty                     := emptyReg
 }
 

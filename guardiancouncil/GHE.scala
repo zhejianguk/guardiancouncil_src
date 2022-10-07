@@ -173,7 +173,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     io.ght_status_out          := ght_status_reg
 
     io.agg_packet_out          := Mux(doPushAgg, Cat(rs1_val, rs2_val), 0.U);
-    io.agg_core_full           := channel_full
+    io.agg_core_status           := Cat(channel_full, channel_empty)
     io.ght_sch_dorefresh       := Mux(doRefreshSch, rs1_val(31, 0), 0.U)
     io.ght_sch_na              := channel_sch_na
 }

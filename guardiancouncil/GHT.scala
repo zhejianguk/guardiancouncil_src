@@ -44,6 +44,8 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_prfs_forward_stq                      = Output(Vec(params.core_width, Bool()))
   val ght_prfs_forward_ftq                      = Output(Vec(params.core_width, Bool()))
   val ght_prfs_forward_prf                      = Output(Vec(params.core_width, Bool()))
+
+  val ght_filters_empty                         = Output(UInt(1.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -201,4 +203,5 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   io.ght_packet_out                             := ght_pack
   io.ght_packet_dest                            := core_d_all
   io.ghm_agg_core_id                            := agg_core_id
+  io.ght_filters_empty                          := u_ght_filters.io.ght_filters_empty
 }

@@ -255,7 +255,7 @@ abstract class BaseTile private (val crossing: ClockCrossingType, q: Parameters)
 
   val agg_packet_out_SRNode       = BundleBridgeSource[UInt](Some(() => UInt(128.W)))
   val agg_buffer_full_in_SKNode   = BundleBridgeSink[UInt](Some(() => UInt(1.W)))
-  val agg_core_full_SRNode        = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
+  val agg_core_status_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
 
   val ght_sch_na_out_SRNode       = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
   val ghe_sch_refresh_in_SKNode   = BundleBridgeSink[UInt](Some(() => UInt(1.W)))

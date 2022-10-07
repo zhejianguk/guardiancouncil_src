@@ -38,6 +38,8 @@ class GHT_FILTERS_PRFS_IO (params: GHT_FILTERS_PRFS_Params) extends Bundle {
   val ght_prfs_forward_stq                      = Output(Vec(params.core_width, Bool()))
   val ght_prfs_forward_ftq                      = Output(Vec(params.core_width, Bool()))
   val ght_prfs_forward_prf                      = Output(Vec(params.core_width, Bool()))
+
+  val ght_filters_empty                         = Output(UInt(1.W))
 }
 
 
@@ -206,7 +208,9 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         buffer_deq_valid                       := false.B
       }
     }
-  /* These are used for 3-width Boom
+
+    // These are used for 3-width Boom
+    /*
     is (fsm_send_third){
       when (!io.ght_stall){
         fsm_state                              := fsm_third_nxt_state
@@ -217,8 +221,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         fsm_state                              := fsm_send_third
         buffer_deq_valid                       := false.B
       }
-    }
-  */
+    }      */
   }
 
   // These are used for 4-width Boom
@@ -253,11 +256,10 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
                                                           )
 
   fsm_fourth_nxt_state                        := fsm_reset
-
   
-  /* These are used for 3-width Boom
+  // These are used for 3-width Boom
   // There are some work is required to make them generic
-
+  /*
   fsm_reset_nxt_state                          := MuxCase(fsm_reset, 
                                                     Array((buffer_inst_type(0) =/= 0.U)  -> fsm_send_first,
                                                           ((buffer_inst_type(0) === 0.U) && (buffer_inst_type(1) =/= 0.U)) -> fsm_send_second,
@@ -283,10 +285,10 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
 
 
 
-
   // Outputs
   io.ght_ft_inst_index                        := inst_type
   io.packet_out                               := packet
-  io.core_hang_up                             := u_buffer(0).io.status_threeslots
-  io.ght_buffer_status                        := Cat(buffer_full(0), buffer_empty(0))
+  io.core_hang_up                             := u_buffer(params.core_width-1).io.status_threeslots
+  io.ght_buffer_status                        := Cat(buffer_full(params.core_width-1), buffer_empty.reduce(_&_))
+  io.ght_filters_empty                        := buffer_empty.reduce(_&_)
 }

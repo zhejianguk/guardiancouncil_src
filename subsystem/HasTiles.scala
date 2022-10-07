@@ -237,7 +237,7 @@ trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
 
   var tile_agg_packet_out_EPNodes                = Seq[BundleBridgeEphemeralNode[UInt]]()
   var tile_agg_buffer_full_in_EPNodes            = Seq[BundleBridgeEphemeralNode[UInt]]()
-  var tile_agg_core_full_out_EPNodes             = Seq[BundleBridgeEphemeralNode[UInt]]()
+  var tile_agg_core_status_out_EPNodes           = Seq[BundleBridgeEphemeralNode[UInt]]()
 
   var tile_ght_sch_na_out_EPNodes                = Seq[BundleBridgeEphemeralNode[UInt]]()
   var tile_ghe_sch_refresh_in_EPNodes            = Seq[BundleBridgeEphemeralNode[UInt]]()
@@ -458,9 +458,9 @@ trait CanAttachTile {
     context.tile_agg_buffer_full_in_EPNodes = context.tile_agg_buffer_full_in_EPNodes :+ tile_agg_buffer_full_in_EPNode
     domain.tile.agg_buffer_full_in_SKNode := tile_agg_buffer_full_in_EPNode
 
-    val tile_agg_core_full_out_EPNode = BundleBridgeEphemeralNode[UInt]()
-    context.tile_agg_core_full_out_EPNodes = context.tile_agg_core_full_out_EPNodes :+ tile_agg_core_full_out_EPNode
-    tile_agg_core_full_out_EPNode := domain.tile.agg_core_full_SRNode
+    val tile_agg_core_status_out_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_agg_core_status_out_EPNodes = context.tile_agg_core_status_out_EPNodes :+ tile_agg_core_status_out_EPNode
+    tile_agg_core_status_out_EPNode := domain.tile.agg_core_status_SRNode
 
     val tile_ght_sch_na_out_EPNode = BundleBridgeEphemeralNode[UInt]()
     context.tile_ght_sch_na_out_EPNodes = context.tile_ght_sch_na_out_EPNodes :+ tile_ght_sch_na_out_EPNode

@@ -57,7 +57,7 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
 
   val agg_packet_out = Output(UInt(128.W))
   val agg_buffer_full = Input(UInt(1.W))
-  val agg_core_full = Output(UInt(1.W))
+  val agg_core_status = Output(UInt(2.W))
   val ght_sch_na = Output(UInt(1.W))
   val ght_sch_refresh = Input(UInt(1.W))
   val ght_sch_dorefresh = Output(UInt(32.W))
@@ -127,7 +127,7 @@ trait HasLazyRoCCModule extends CanHavePTWModule
 
       cmdRouter.io.agg_packet_in := rocc.module.io.agg_packet_out
       rocc.module.io.agg_buffer_full := cmdRouter.io.agg_buffer_full
-      cmdRouter.io.agg_core_full_in := rocc.module.io.agg_core_full
+      cmdRouter.io.agg_core_status_in := rocc.module.io.agg_core_status
       cmdRouter.io.ght_sch_na_in := rocc.module.io.ght_sch_na
       rocc.module.io.ght_sch_refresh := cmdRouter.io.ght_sch_refresh
       rocc.module.io.ght_buffer_status := cmdRouter.io.ght_buffer_status
@@ -463,8 +463,8 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val agg_packet_out = Output(UInt(128.W))
     val agg_packet_in  = Input(UInt(128.W))
     val agg_buffer_full = Input(UInt(1.W))
-    val agg_core_full_out = Output(UInt(1.W))
-    val agg_core_full_in = Input(UInt(1.W))
+    val agg_core_status_out = Output(UInt(2.W))
+    val agg_core_status_in = Input(UInt(2.W))
 
     val ght_sch_na_in = Input(UInt(1.W))
     val ght_sch_na_out = Output(UInt(1.W))
@@ -496,7 +496,7 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   io.ght_cfg_valid := io.ght_cfg_valid_in
 
   io.agg_packet_out := io.agg_packet_in
-  io.agg_core_full_out := io.agg_core_full_in
+  io.agg_core_status_out := io.agg_core_status_in
   io.ght_sch_na_out := io.ght_sch_na_in
   io.ght_sch_dorefresh_out := io.ght_sch_dorefresh_in
 
@@ -530,8 +530,8 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val agg_packet_out = Output(UInt(128.W))
     val agg_packet_in  = Input(UInt(128.W))
     val agg_buffer_full = Input(UInt(1.W))
-    val agg_core_full_out = Output(UInt(1.W))
-    val agg_core_full_in = Input(UInt(1.W))
+    val agg_core_status_out = Output(UInt(2.W))
+    val agg_core_status_in = Input(UInt(2.W))
 
     val ght_sch_na_in = Input(UInt(1.W))
     val ght_sch_na_out = Output(UInt(1.W))
@@ -566,7 +566,7 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   io.ght_cfg_valid := io.ght_cfg_valid_in
 
   io.agg_packet_out := io.agg_packet_in
-  io.agg_core_full_out := io.agg_core_full_in
+  io.agg_core_status_out := io.agg_core_status_in
   io.ght_sch_na_out := io.ght_sch_na_in
   io.ght_sch_dorefresh_out := io.ght_sch_dorefresh_in
   io.if_correct_process_out := io.if_correct_process_in

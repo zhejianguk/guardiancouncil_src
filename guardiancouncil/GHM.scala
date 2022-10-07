@@ -30,7 +30,7 @@ class GHMIO(params: GHMParams) extends Bundle {
 
   val agg_packet_in                              = Input(Vec(params.number_of_little_cores, UInt(params.width_GH_packet.W)))
   val agg_buffer_full                            = Output(Vec(params.number_of_little_cores, UInt(1.W)))
-  val agg_core_full                              = Input(Vec(params.number_of_little_cores,UInt(1.W)))
+  val agg_core_status                            = Input(Vec(params.number_of_little_cores,UInt(2.W)))
   val agg_core_id                                = Input(UInt(16.W))
 
   val sch_na_in                                  = Input(Vec(params.number_of_little_cores, UInt(1.W)))
@@ -82,14 +82,20 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
     u_agg.io.agg_packet_in(i)                   := io.agg_packet_in(i)
     io.agg_buffer_full(i)                       := u_agg.io.agg_buffer_full(i)
   }
-  u_agg.io.agg_core_full                        := io.agg_core_full(agg_core_id)
+  u_agg.io.agg_core_full                        := io.agg_core_status(agg_core_id)(1)
   do_refresh                                    := io.sch_do_refresh(agg_core_id)
 
+  val collecting_checker_status                  = io.agg_core_status.reduce(_&_)
+  val if_checkers_empty                          = collecting_checker_status(0)
+  val if_filters_empty                           = io.ghm_status_in(31)
+  val if_ghm_empty                               = Mux((packet_dest_reg === 0.U), 1.U, 0.U)
+  val if_no_inflight_packets                     = if_checkers_empty & if_filters_empty & if_ghm_empty
+  val zeros_1bit                                 = WireInit(0.U(1.W))
   for(i <- 0 to params.number_of_little_cores - 1) {
-    io.ghm_packet_outs(i)                      := packet_out_wires(i)
-    io.ghm_status_outs(i)                      := io.ghm_status_in
-    sch_na_in_wires(i)                         := Cat(zeros_nbit, io.sch_na_in(i))
-    io.sch_refresh_out(i)                      := do_refresh(i)
+    io.ghm_packet_outs(i)                       := packet_out_wires(i)
+    io.ghm_status_outs(i)                       := Mux((if_no_inflight_packets === 1.U), Cat(zeros_1bit, io.ghm_status_in(30,0)), 1.U)
+    sch_na_in_wires(i)                          := Cat(zeros_nbit, io.sch_na_in(i))
+    io.sch_refresh_out(i)                       := do_refresh(i)
   }
 
 
@@ -150,7 +156,7 @@ object GHMCore {
     // Agg
     var agg_packet_in_SKNodes                      = Seq[BundleBridgeSink[UInt]]()
     var agg_buffer_full_out_SRNodes                = Seq[BundleBridgeSource[UInt]]()
-    var agg_core_full_in_SKNodes                   = Seq[BundleBridgeSink[UInt]]()
+    var agg_core_status_in_SKNodes                 = Seq[BundleBridgeSink[UInt]]()
 
     var ghm_ght_sch_na_in_SKNodes                  = Seq[BundleBridgeSink[UInt]]()
     var ghm_ghe_sch_refresh_out_SRNodes            = Seq[BundleBridgeSource[UInt]]()
@@ -165,9 +171,9 @@ object GHMCore {
       agg_buffer_full_out_SRNodes                  = agg_buffer_full_out_SRNodes :+ agg_buffer_full_out_SRNode
       subsystem.tile_agg_buffer_full_in_EPNodes(i):= agg_buffer_full_out_SRNodes(i)
 
-      val agg_core_full_in_SKNode                  = BundleBridgeSink[UInt]()
-      agg_core_full_in_SKNodes                     = agg_core_full_in_SKNodes :+ agg_core_full_in_SKNode
-      agg_core_full_in_SKNodes(i)                 := subsystem.tile_agg_core_full_out_EPNodes(i)
+      val agg_core_status_in_SKNode                = BundleBridgeSink[UInt]()
+      agg_core_status_in_SKNodes                   = agg_core_status_in_SKNodes :+ agg_core_status_in_SKNode
+      agg_core_status_in_SKNodes(i)               := subsystem.tile_agg_core_status_out_EPNodes(i)
 
       val ghm_ght_sch_na_in_SKNode                 = BundleBridgeSink[UInt]()
       ghm_ght_sch_na_in_SKNodes                    = ghm_ght_sch_na_in_SKNodes :+ ghm_ght_sch_na_in_SKNode
@@ -203,7 +209,7 @@ object GHMCore {
           agg_buffer_full_out_SRNodes(i).bundle   := 0.U
         } else {// -1 big core
           ghm_ghe_packet_out_SRNodes(i).bundle    := ghm.io.ghm_packet_outs(i-1)
-          ghm.io.agg_core_full(i-1)               := agg_core_full_in_SKNodes(i).bundle
+          ghm.io.agg_core_status(i-1)             := agg_core_status_in_SKNodes(i).bundle
           ghm.io.sch_do_refresh(i-1)              := ghm_ght_sch_dorefresh_in_SKNodes(i).bundle
           ghm_ghe_status_out_SRNodes(i).bundle    := ghm.io.ghm_status_outs(i-1)
           ghm.io.ghe_event_in(i-1)                := ghm_ghe_event_in_SKNodes(i).bundle
