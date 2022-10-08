@@ -85,15 +85,27 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
   u_agg.io.agg_core_full                        := io.agg_core_status(agg_core_id)(1)
   do_refresh                                    := io.sch_do_refresh(agg_core_id)
 
+  // 2-cyecle delays are added to ensure all filtering activities are completed.
+  val ghm_status_delay1_cycle                    = RegInit(0.U(2.W))
+  val ghm_status_delay2_cycle                    = RegInit(0.U(2.W))
+  val ghm_status_delay3_cycle                    = RegInit(0.U(2.W))
+  val ghm_status_delay4_cycle                    = RegInit(0.U(2.W))
+  ghm_status_delay1_cycle                       := io.ghm_status_in(1,0)
+  ghm_status_delay2_cycle                       := ghm_status_delay1_cycle
+  ghm_status_delay3_cycle                       := ghm_status_delay2_cycle
+  ghm_status_delay4_cycle                       := ghm_status_delay3_cycle
+
+
   val collecting_checker_status                  = io.agg_core_status.reduce(_&_)
   val if_checkers_empty                          = collecting_checker_status(0)
   val if_filters_empty                           = io.ghm_status_in(31)
-  val if_ghm_empty                               = Mux((packet_dest_reg === 0.U), 1.U, 0.U)
+  val if_ghm_empty                               = Mux(((packet_dest_reg === 0.U) && (io.ghm_packet_dest === 0.U)), 1.U, 0.U)
+
   val if_no_inflight_packets                     = if_checkers_empty & if_filters_empty & if_ghm_empty
-  val zeros_1bit                                 = WireInit(0.U(1.W))
+  val zeros_62bit                                = WireInit(0.U(62.W))
   for(i <- 0 to params.number_of_little_cores - 1) {
     io.ghm_packet_outs(i)                       := packet_out_wires(i)
-    io.ghm_status_outs(i)                       := Mux((if_no_inflight_packets === 1.U), Cat(zeros_1bit, io.ghm_status_in(30,0)), 1.U)
+    io.ghm_status_outs(i)                       := Mux((if_no_inflight_packets === 1.U), Cat(zeros_62bit, ghm_status_delay4_cycle), 1.U)
     sch_na_in_wires(i)                          := Cat(zeros_nbit, io.sch_na_in(i))
     io.sch_refresh_out(i)                       := do_refresh(i)
   }
