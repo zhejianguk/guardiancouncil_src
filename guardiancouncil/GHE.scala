@@ -157,7 +157,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     }
 
     val define_monitor_target   = WireInit(0.U(1.W))
-    define_monitor_target      := Mux((doMask && (rs1_val === 1.U)), 1.U, 0.U)
+    define_monitor_target      := Mux((doMask && (rs1_val === 4.U)), 1.U, 0.U)
     when (define_monitor_target === 1.U) {
       ght_monitor_satp_ppn     := io.ght_satp_ppn
       ght_monitor_sys_mode     := io.ght_sys_mode
@@ -165,7 +165,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     }
     val hit_satp_ppn            = (ght_monitor_satp_ppn === io.ght_satp_ppn)
     val hit_privi               = (ght_monitor_sys_mode === io.ght_sys_mode)
-    io.if_correct_process      := Mux((has_monitor_target === 1.U), (hit_satp_ppn & hit_privi), define_monitor_target)
+    io.if_correct_process      := Mux((define_monitor_target === 1.U), 1.U, (hit_satp_ppn & hit_privi & has_monitor_target))
 
     io.ght_cfg_out             := Mux(doGHT_Cfg, rs1_val(31,0), 0.U) 
     io.ght_cfg_valid           := Mux(doGHT_Cfg, 1.U, 0.U)
