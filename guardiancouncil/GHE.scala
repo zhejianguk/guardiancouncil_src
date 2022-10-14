@@ -157,7 +157,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     }
 
     val define_monitor_target   = WireInit(0.U(1.W))
-    define_monitor_target      := Mux((doMask && (rs1_val === 1.U) && (has_monitor_target === 0.U)), 1.U, 0.U)
+    define_monitor_target      := Mux((doMask && (rs1_val === 1.U)), 1.U, 0.U)
     when (define_monitor_target === 1.U) {
       ght_monitor_satp_ppn     := io.ght_satp_ppn
       ght_monitor_sys_mode     := io.ght_sys_mode
