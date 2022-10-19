@@ -55,7 +55,7 @@ class GHT_FTABLE (val params: GHT_FTABLE_Params) extends Module with HasGHT_FTAB
 
   when (!is_mem_initalised) {
     ref_table.write (initalisation_ptr(9,0), 0x0.U)
-    initalisation_ptr = initalisation_ptr + 0x1.U;
+    initalisation_ptr                          := initalisation_ptr + 0x1.U;
   } .otherwise {
     when (io.cfg_ref_inst_valid === 0x1.U){
       ref_table.write(Cat(io.cfg_ref_inst_func, io.cfg_ref_inst_opcode), // Address 
