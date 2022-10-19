@@ -40,6 +40,11 @@ class GHT_FTABLE (val params: GHT_FTABLE_Params) extends Module with HasGHT_FTAB
   val mem_raddr                                 = WireInit(0.U(10.W))
   val mem_ren                                   = WireInit(false.B)
   val mem_ren_reg                               = RegInit(false.B)
+  val is_mem_initalised                         = WireInit(false.B)
+  val initalisation_ptr                         = RegInit(0.U(11.W))
+       
+  is_mem_initalised                            := Mux(initalisation_ptr < 1024.U, false.B, true.B)
+
   mem_raddr                                    := Cat(io.inst_in_func, io.inst_in_opcode)
   mem_ren                                      := io.inst_newcommit
   mem_ren_reg                                  := mem_ren
@@ -47,10 +52,18 @@ class GHT_FTABLE (val params: GHT_FTABLE_Params) extends Module with HasGHT_FTAB
   // Size: 2^(width_func + width_opcode)
   // Width: width_index + width_sel_d
   val ref_table                                 = SyncReadMem(1024, UInt((5 + 4).W))
-  when (io.cfg_ref_inst_valid === 1.U){
-    ref_table.write(Cat(io.cfg_ref_inst_func, io.cfg_ref_inst_opcode), // Address 
-                    Cat(io.cfg_ref_inst_index,io.cfg_ref_inst_sel_d))
+
+  when (!is_mem_initalised) {
+    ref_table.write (initalisation_ptr(9,0), 0x0.U)
+    initalisation_ptr = initalisation_ptr + 0x1.U;
+  } .otherwise {
+    when (io.cfg_ref_inst_valid === 0x1.U){
+      ref_table.write(Cat(io.cfg_ref_inst_func, io.cfg_ref_inst_opcode), // Address 
+                      Cat(io.cfg_ref_inst_index,io.cfg_ref_inst_sel_d))
+      initalisation_ptr                       := Mux(((io.cfg_ref_inst_func === 0x7.U) && (io.cfg_ref_inst_opcode === 0x7F.U) && (io.cfg_ref_inst_index === 0x1F.U) && (io.cfg_ref_inst_sel_d === 0xF.U)), 0.U, initalisation_ptr)
+    }
   }
+
   mem_data                                     := ref_table.read(mem_raddr, mem_ren)
 
   
