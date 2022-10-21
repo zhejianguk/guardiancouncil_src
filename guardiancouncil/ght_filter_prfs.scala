@@ -84,8 +84,8 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
   u_ght_ftable.io.inst_in_func                 := func
   u_ght_ftable.io.inst_in_opcode               := opcode
 
-  val inst_index                                = WireInit(0.U(5.W))
-  val dp_sel                                    = WireInit(0.U(4.W))
+  val inst_index                                = WireInit(0.U(2.W))
+  val dp_sel                                    = WireInit(0.U(2.W))
 
   inst_index                                   := u_ght_ftable.io.inst_index
   dp_sel                                       := u_ght_ftable.io.inst_sel_d
@@ -95,8 +95,8 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
 
 
   if (params.use_prfs){
-  val inst_index_reg                            = RegInit(0.U(5.W))
-  val dp_sel_reg                                = RegInit(0.U(4.W))
+  val inst_index_reg                            = RegInit(0.U(2.W))
+  val dp_sel_reg                                = RegInit(0.U(2.W))
   val pc_reg_delay                              = RegInit(0.U(32.W))
   val inst_reg_delay                            = RegInit(0.U(32.W))
   val inst_ret_delay                            = RegInit(false.B)
