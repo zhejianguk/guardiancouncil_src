@@ -36,7 +36,9 @@ trait HasGHT_FTABLE_IO extends BaseModule {
 //==========================================================
 class GHT_FTABLE (val params: GHT_FTABLE_Params) extends Module with HasGHT_FTABLE_IO
 {
-  val mem_data                                  = WireInit(0.U((5 + 4).W))
+  // We set the memory size as 4 bits * 1024 -- this is for Implemenation & Rouring.
+  // But we have reserved 9 bits for future upgrade 
+  val mem_data                                  = WireInit(0.U((2 + 2).W))
   val mem_raddr                                 = RegInit(0.U(10.W))
   val mem_ren                                   = WireInit(false.B)
   val mem_ren_reg                               = RegInit(false.B)
@@ -51,7 +53,7 @@ class GHT_FTABLE (val params: GHT_FTABLE_Params) extends Module with HasGHT_FTAB
 
   // Size: 2^(width_func + width_opcode)
   // Width: width_index + width_sel_d
-  val ref_table                                 = Mem(1024, UInt((5 + 4).W))
+  val ref_table                                 = Mem(1024, UInt((2 + 2).W))
 
   when (!is_mem_initalised) {
     ref_table.write (initalisation_ptr(9,0), 0x0.U)
@@ -59,16 +61,17 @@ class GHT_FTABLE (val params: GHT_FTABLE_Params) extends Module with HasGHT_FTAB
   } .otherwise {
     when (io.cfg_ref_inst_valid === 0x1.U){
       ref_table.write(Cat(io.cfg_ref_inst_func, io.cfg_ref_inst_opcode), // Address 
-                      Cat(io.cfg_ref_inst_index,io.cfg_ref_inst_sel_d))
+                      Cat(io.cfg_ref_inst_index(1,0),io.cfg_ref_inst_sel_d(1,0)))
       initalisation_ptr                        := Mux(((io.cfg_ref_inst_func === 0x7.U) && (io.cfg_ref_inst_opcode === 0x7F.U) && (io.cfg_ref_inst_index === 0x1F.U) && (io.cfg_ref_inst_sel_d === 0xF.U)), 0.U, initalisation_ptr)
     }
   }
 
   mem_data                                     := ref_table.read(mem_raddr)
+  val zeros_2bits                               = WireInit(0.U(2.W))
+  val zeros_3bits                               = WireInit(0.U(3.W))
 
-  
-  io.inst_index                                := Mux(mem_ren_reg === 1.U, mem_data(8,4), 0.U)
-  io.inst_sel_d                                := Mux(mem_ren_reg === 1.U, mem_data(3,0), 0.U)
+  io.inst_index                                := Mux(mem_ren_reg === 1.U, Cat(zeros_3bits, mem_data(3,2)), 0.U)
+  io.inst_sel_d                                := Mux(mem_ren_reg === 1.U, Cat(zeros_2bits, mem_data(1,0)), 0.U)
 }
   
   

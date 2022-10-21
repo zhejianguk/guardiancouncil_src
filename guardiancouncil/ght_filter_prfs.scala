@@ -116,8 +116,7 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
                                                     Array((dp_sel === 0.U)  -> false.B,
                                                           (dp_sel === 1.U)  -> false.B,
                                                           (dp_sel === 2.U)  -> true.B,
-                                                          (dp_sel === 3.U)  -> false.B,
-                                                          (dp_sel === 4.U)  -> false.B
+                                                          (dp_sel === 3.U)  -> false.B
                                                           )
                                                           )
 
@@ -125,17 +124,15 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
                                                     Array((dp_sel === 0.U)  -> false.B,
                                                           (dp_sel === 1.U)  -> false.B,
                                                           (dp_sel === 2.U)  -> false.B,
-                                                          (dp_sel === 3.U)  -> true.B,
-                                                          (dp_sel === 4.U)  -> false.B
+                                                          (dp_sel === 3.U)  -> true.B
                                                           )
                                                           )
 
   val ght_prfs_forward_prf                      = MuxCase(0.U,
                                                     Array((dp_sel === 0.U)  -> false.B,
-                                                          (dp_sel === 1.U)  -> false.B,
+                                                          (dp_sel === 1.U)  -> true.B,
                                                           (dp_sel === 2.U)  -> false.B,
-                                                          (dp_sel === 3.U)  -> false.B,
-                                                          (dp_sel === 4.U)  -> true.B
+                                                          (dp_sel === 3.U)  -> false.B
                                                           )
                                                           )
 
@@ -146,7 +143,7 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
                                                     Array((dp_sel_reg === 0.U) -> 0.U,
                                                           (dp_sel_reg === 2.U) -> Cat(pc_reg_delay, inst_reg_delay, dp_ldst_reg),
                                                           (dp_sel_reg === 3.U) -> Cat(pc_reg_delay, inst_reg_delay, dp_ldst_reg),
-                                                          (dp_sel_reg === 4.U) -> Cat(pc_reg_delay, inst_reg_delay, dp_jump_wire)
+                                                          (dp_sel_reg === 1.U) -> Cat(pc_reg_delay, inst_reg_delay, dp_jump_wire)
                                                           )
                                                           )
   io.ght_ft_inst_index                         := inst_index_reg
