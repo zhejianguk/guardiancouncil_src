@@ -160,6 +160,11 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
                                                           (dp_sel =/= 0.U)  -> Cat(pc_reg, inst_reg, dp_ldst_reg)
                                                           )
                                                           )
-  io.ght_ft_inst_index                         := inst_index
+
+  io.ght_ft_inst_index                         := MuxCase(0.U, 
+                                                    Array((dp_sel === 0.U)  -> 0.U,
+                                                          (dp_sel =/= 0.U)  -> inst_index
+                                                          )
+                                                          )
   }
 }

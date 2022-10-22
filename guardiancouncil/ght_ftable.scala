@@ -22,7 +22,7 @@ class GHT_FTABLE_IO (params: GHT_FTABLE_Params) extends Bundle {
   val inst_newcommit                            = Input(Bool())
   val inst_in_func                              = Input(UInt(3.W))
   val inst_in_opcode                            = Input(UInt(7.W))
-  val inst_index                                = Output(UInt(2.W))
+  val inst_index                                = Output(UInt(5.W))
   val inst_sel_d                                = Output(UInt(2.W))    
 }
 
@@ -67,8 +67,8 @@ class GHT_FTABLE (val params: GHT_FTABLE_Params) extends Module with HasGHT_FTAB
   }
 
   mem_data                                     := ref_table.read(mem_raddr)
-
-  io.inst_index                                := Mux(mem_ren_reg === 1.U, mem_data(3,2), 0.U)
+  val zeros_3bits                               = WireInit(0.U(3.W))
+  io.inst_index                                := Mux(mem_ren_reg === 1.U, Cat(zeros_3bits, mem_data(3,2)), 0.U)
   io.inst_sel_d                                := Mux(mem_ren_reg === 1.U, mem_data(1,0), 0.U)
 }
   
