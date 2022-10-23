@@ -66,6 +66,9 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val ght_satp_ppn  = Input(UInt(44.W))
   val ght_sys_mode  = Input(UInt(2.W))
   val if_correct_process = Output(UInt(1.W))
+  
+  val debug_mcounter = Input(UInt(64.W))
+  val debug_icounter = Input(UInt(64.W))
   //===== GuardianCouncil Function: End   ====//
 }
 
@@ -546,6 +549,9 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
 
     val if_correct_process_in = Input(UInt(1.W))
     val if_correct_process_out = Output(UInt(1.W))
+
+    val debug_mcounter  = Input(UInt(64.W))
+    val debug_icounter  = Input(UInt(64.W))
     //===== GuardianCouncil Function: End   ====//
   }
 

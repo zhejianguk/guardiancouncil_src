@@ -46,6 +46,8 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_prfs_forward_prf                      = Output(Vec(params.core_width, Bool()))
 
   val ght_filters_empty                         = Output(UInt(1.W))
+  val debug_mcounter                            = Output(UInt(64.W))
+  val debug_icounter                            = Output(UInt(64.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -204,4 +206,15 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   io.ght_packet_dest                            := core_d_all
   io.ghm_agg_core_id                            := agg_core_id
   io.ght_filters_empty                          := u_ght_filters.io.ght_filters_empty
+
+  val debug_mcounter                             = RegInit(0.U(64.W))
+  val debug_icounter                             = RegInit(0.U(64.W))
+  when (core_d_all =/= 0.U) {
+    debug_mcounter                              := debug_mcounter + 1.U
+  }
+  when (inst_index =/= 0.U) {
+    debug_icounter                              := debug_icounter + 1.U
+  }
+  io.debug_mcounter                             := debug_mcounter
+  io.debug_icounter                             := debug_icounter
 }

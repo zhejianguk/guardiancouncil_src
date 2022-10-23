@@ -75,7 +75,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doCheckM_PPN            = (cmd.fire && (funct === 0x17.U))
     val doCheckM_SysMode        = (cmd.fire && (funct === 0x18.U))
     val bigComp                 = io.bigcore_comp
-  
+    val doDebug_MCounter        = (cmd.fire && (funct === 0x19.U))
+    val doDebug_ICounter        = (cmd.fire && (funct === 0x1a.U))
 
     val ghe_packet_in           = io.ghe_packet_in
     val doPush                  = (ghe_packet_in =/= 0.U) && !channel_full
@@ -120,7 +121,9 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doBigCheck          -> Cat(bigComp, rs1_val(15, 0)),
                                           doGHTBufferCheck    -> Cat(zeros_62bits, io.ght_buffer_status),
                                           doCheckM_PPN        -> Cat(zeros_20bits, ght_monitor_satp_ppn),
-                                          doCheckM_SysMode    -> Cat(zeros_62bits, ght_monitor_sys_mode)
+                                          doCheckM_SysMode    -> Cat(zeros_62bits, ght_monitor_sys_mode),
+                                          doDebug_MCounter    -> io.debug_mcounter,
+                                          doDebug_ICounter    -> io.debug_icounter
                                           )
                                           )
     when (doEvent) {
