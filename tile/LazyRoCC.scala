@@ -69,6 +69,7 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   
   val debug_mcounter = Input(UInt(64.W))
   val debug_icounter = Input(UInt(64.W))
+  val debug_gcounter = Input(UInt(64.W))
   //===== GuardianCouncil Function: End   ====//
 }
 
@@ -552,6 +553,7 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
 
     val debug_mcounter  = Input(UInt(64.W))
     val debug_icounter  = Input(UInt(64.W))
+    val debug_gcounter  = Input(UInt(64.W))
     //===== GuardianCouncil Function: End   ====//
   }
 

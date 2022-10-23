@@ -37,6 +37,8 @@ class GHMIO(params: GHMParams) extends Bundle {
   val sch_na_out                                 = Output(UInt(params.number_of_little_cores.W))
   val sch_do_refresh                             = Input(Vec(params.number_of_little_cores, UInt(32.W)))
   val sch_refresh_out                            = Output(Vec(params.number_of_little_cores, UInt(1.W)))
+
+  val debug_gcounter                             = Output(UInt(64.W))
 }
 
 trait HasGHMIO extends BaseModule {
@@ -68,6 +70,7 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
   val agg_core_id                                = io.agg_core_id - 1.U
   val do_refresh                                 = WireInit(0.U(32.W))
 
+  val debug_gcounter                             = RegInit(0.U(64.W))
 
   
   
@@ -118,9 +121,15 @@ class GHM (val params: GHMParams) extends Module with HasGHMIO
     sch_na                                      = sch_na | (sch_na_in_wires(i) << i)
   }
 
+  when (io.ghm_packet_dest =/= 0.U) {
+    debug_gcounter                             := debug_gcounter + 1.U
+  }
+
   io.bigcore_hang                              := warning
   io.bigcore_comp                              := Cat(release, complete)
   io.sch_na_out                                := sch_na
+
+  io.debug_gcounter                            := debug_gcounter
 }
 
 case class GHMCoreLocated(loc: HierarchicalLocation) extends Field[Option[GHMParams]](None)
@@ -203,7 +212,8 @@ object GHMCore {
     val sch_na_SRNode                              = BundleBridgeSource[UInt](Some(() => UInt(16.W)))
     subsystem.tile_sch_na_EPNode                  := sch_na_SRNode
 
-
+    val debug_gcounter_SRNode                      = BundleBridgeSource[UInt](Some(() => UInt(64.W)))
+    subsystem.tile_debug_gcounter_EPNode          := debug_gcounter_SRNode
     
 
     InModuleBody {
@@ -235,6 +245,7 @@ object GHMCore {
       bigcore_hang_SRNode.bundle                  := ghm.io.bigcore_hang
       bigcore_comp_SRNode.bundle                  := ghm.io.bigcore_comp
       sch_na_SRNode.bundle                        := ghm.io.sch_na_out
+      debug_gcounter_SRNode.bundle                := ghm.io.debug_gcounter
     }
   }
 }

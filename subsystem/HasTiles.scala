@@ -244,6 +244,8 @@ trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
 
   val tile_sch_na_EPNode                         = BundleBridgeEphemeralNode[UInt]()
   var tile_ght_sch_dorefresh_EPNodes             = Seq[BundleBridgeEphemeralNode[UInt]]()
+
+  val tile_debug_gcounter_EPNode                 = BundleBridgeEphemeralNode[UInt]()
 }
 //===== GuardianCouncil Function: End ======//
 
@@ -418,6 +420,7 @@ trait CanAttachTile {
       domain.tile.bigcore_hang_in_SKNode  := context.tile_bigcore_hang_EPNode
       domain.tile.bigcore_comp_in_SKNode  := context.tile_bigcore_comp_EPNode
       domain.tile.sch_na_inSKNode         := context.tile_sch_na_EPNode
+      domain.tile.debug_gcounter_SKNode   := context.tile_debug_gcounter_EPNode
       println("#### Jessica #### Connecting GHT **Nodes** on the sub-system, HartID:", tileParams.hartId, "...!!")
     } else {
       val useless_bigcore_hang_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
@@ -427,6 +430,7 @@ trait CanAttachTile {
       val useless_packet_dest_SKNode       = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
       val useless_status_SKNode            = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
       val useless_sch_na_inSKNode          = BundleBridgeSource[UInt](Some(() => UInt(16.W)))
+      val useless_debug_gcounter_SKNode    = BundleBridgeSource[UInt](Some(() => UInt(64.W)))
       useless_packet_SKNode               := domain.tile.ght_packet_out_SRNode
       useless_agg_core_id_SKNode          := domain.tile.ghm_agg_core_id_out_SRNode
       useless_packet_dest_SKNode          := domain.tile.ght_packet_dest_SRNode
@@ -434,6 +438,7 @@ trait CanAttachTile {
       domain.tile.bigcore_hang_in_SKNode  := useless_bigcore_hang_SRNode
       domain.tile.bigcore_comp_in_SKNode  := useless_bigcore_comp_SRNode
       domain.tile.sch_na_inSKNode         := useless_sch_na_inSKNode
+      domain.tile.debug_gcounter_SKNode   := useless_debug_gcounter_SKNode
       println("#### Jessica #### Tieing off GHT **Nodes** on the sub-system, HartID:", tileParams.hartId,"...!!")
     }
 

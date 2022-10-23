@@ -65,6 +65,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doPushAgg               = (cmd.fire && (funct === 0x11.U) && !io.agg_buffer_full)
     val doCheckSch              = (cmd.fire && (funct === 0x20.U))
     val doRefreshSch            = (cmd.fire && (funct === 0x21.U))
+    val doDebug_ECounter        = (cmd.fire && (funct === 0x22.U))
+    val doDebug_GCounter        = (cmd.fire && (funct === 0x23.U))
 
     // For big core
     val doBigCheck              = (cmd.fire && (funct === 0x6.U))
@@ -89,6 +91,13 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val ght_monitor_satp_ppn    = RegInit(0.U(44.W))
     val ght_monitor_sys_mode    = RegInit(0.U(2.W))
     val has_monitor_target      = RegInit(0.U(1.W))
+
+    // Debug 
+    val ECounter                = RegInit(0.U(64.W))
+    when (doPush){
+      ECounter                 := ECounter + 1.U
+    }
+
     
     // Check status
     // 0b01: empty
@@ -123,7 +132,9 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doCheckM_PPN        -> Cat(zeros_20bits, ght_monitor_satp_ppn),
                                           doCheckM_SysMode    -> Cat(zeros_62bits, ght_monitor_sys_mode),
                                           doDebug_MCounter    -> io.debug_mcounter,
-                                          doDebug_ICounter    -> io.debug_icounter
+                                          doDebug_ICounter    -> io.debug_icounter,
+                                          doDebug_ECounter    -> ECounter,
+                                          doDebug_GCounter    -> io.debug_gcounter
                                           )
                                           )
     when (doEvent) {
