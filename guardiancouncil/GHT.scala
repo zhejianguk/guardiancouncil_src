@@ -23,7 +23,7 @@ case class GHTParams(
 //==========================================================
 class GHT_IO (params: GHTParams) extends Bundle {
   val ght_packet_out                            = Output(UInt((params.packet_size).W))
-  val ght_packet_dest                           = Output(UInt(params.width_core_pc.W))
+  val ght_packet_dest                           = Output(UInt(params.totalnumber_of_checkers.W))
   val ght_mask_in                               = Input(UInt(1.W))
   val ght_cfg_in                                = Input(UInt(32.W))
   val ght_cfg_valid                             = Input(UInt(1.W))
@@ -202,8 +202,13 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   //==========================================================
   // Output generation
   //==========================================================
-  io.ght_packet_out                             := ght_pack
-  io.ght_packet_dest                            := core_d_all
+  val ght_packet_out_reg                         = RegInit(0.U((params.packet_size.W)))
+  val ght_packet_dest_reg                        = RegInit(0.U((params.totalnumber_of_checkers).W))
+  ght_packet_out_reg                            := ght_pack
+  ght_packet_dest_reg                           := core_d_all
+
+  io.ght_packet_out                             := ght_packet_out_reg
+  io.ght_packet_dest                            := ght_packet_dest_reg
   io.ghm_agg_core_id                            := agg_core_id
   io.ght_filters_empty                          := u_ght_filters.io.ght_filters_empty
 
@@ -215,6 +220,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   when (inst_index =/= 0.U) {
     debug_icounter                              := debug_icounter + 1.U
   }
+  
   io.debug_mcounter                             := debug_mcounter
   io.debug_icounter                             := debug_icounter
 }
