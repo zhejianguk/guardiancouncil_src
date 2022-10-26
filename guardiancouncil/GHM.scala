@@ -57,8 +57,8 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     val u_agg                                      = Module (new GHT_AGG(GHM_AGG_Params(params.number_of_little_cores, params.width_GH_packet)))
 
     // Adding a register to avoid the critical path
-    val packet_in_reg                              = WireInit (0.U(params.width_GH_packet.W))
-    val packet_dest_reg                            = WireInit (0.U((params.number_of_little_cores+1).W))
+    val packet_in_reg                              = RegInit (0.U(params.width_GH_packet.W))
+    val packet_dest_reg                            = RegInit (0.U((params.number_of_little_cores+1).W))
     val packet_out_wires                           = WireInit (VecInit(Seq.fill(params.number_of_little_cores)(0.U(params.width_GH_packet.W))))
     packet_in_reg                                 := io.ghm_packet_in
     packet_dest_reg                               := io.ghm_packet_dest
