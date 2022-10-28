@@ -92,11 +92,11 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     do_refresh                                    := io.sch_do_refresh(agg_core_id)
 
     // 2-cyecle delays are added to ensure all filtering activities are completed.
-    val ghm_status_delay1_cycle                    = RegInit(0.U(2.W))
-    val ghm_status_delay2_cycle                    = RegInit(0.U(2.W))
-    val ghm_status_delay3_cycle                    = RegInit(0.U(2.W))
-    val ghm_status_delay4_cycle                    = RegInit(0.U(2.W))
-    ghm_status_delay1_cycle                       := io.ghm_status_in(1,0)
+    val ghm_status_delay1_cycle                    = RegInit(0.U(5.W))
+    val ghm_status_delay2_cycle                    = RegInit(0.U(5.W))
+    val ghm_status_delay3_cycle                    = RegInit(0.U(5.W))
+    val ghm_status_delay4_cycle                    = RegInit(0.U(5.W))
+    ghm_status_delay1_cycle                       := io.ghm_status_in(4,0)
     ghm_status_delay2_cycle                       := ghm_status_delay1_cycle
     ghm_status_delay3_cycle                       := ghm_status_delay2_cycle
     ghm_status_delay4_cycle                       := ghm_status_delay3_cycle
@@ -108,10 +108,10 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     val if_ghm_empty                               = Mux(((packet_dest_reg === 0.U) && (io.ghm_packet_dest === 0.U)), 1.U, 0.U)
 
     val if_no_inflight_packets                     = if_checkers_empty & if_filters_empty & if_ghm_empty
-    val zeros_62bit                                = WireInit(0.U(62.W))
+    val zeros_59bit                                = WireInit(0.U(59.W))
     for(i <- 0 to params.number_of_little_cores - 1) {
       io.ghm_packet_outs(i)                       := packet_out_wires(i)
-      io.ghm_status_outs(i)                       := Mux((if_no_inflight_packets === 1.U), Cat(zeros_62bit, ghm_status_delay4_cycle), 1.U)
+      io.ghm_status_outs(i)                       := Mux((if_no_inflight_packets === 1.U), Cat(zeros_59bit, ghm_status_delay4_cycle), 1.U)
       sch_na_in_wires(i)                          := Cat(zeros_nbit, io.sch_na_in(i))
       io.sch_refresh_out(i)                       := do_refresh(i)
     }
