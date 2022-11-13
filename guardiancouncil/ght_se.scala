@@ -21,6 +21,7 @@ class GHT_SE_IO (params: GHT_SE_Params) extends Bundle {
   val inst_c                                    = Input(UInt(1.W))
   val core_d                                    = Output(UInt(params.totalnumber_of_checkers.W))
   val core_na                                   = Input(UInt(params.totalnumber_of_checkers.W))
+  val sch_hang                                  = Output(UInt(1.W))
 }
 
 
@@ -39,10 +40,13 @@ class GHT_SE (val params: GHT_SE_Params) extends Module with HasGHT_SE_IO
   // Configurations
   //==========================================================
   val u_ght_stable                              = Module (new GHT_STABLE(GHT_STABLE_Params ()))
-  u_ght_stable.io.cfg_sch_end_id               := this.io.ght_se_cfg_in(31,28)
-  u_ght_stable.io.cfg_sch_policy               := this.io.ght_se_cfg_in(27,21)
-  u_ght_stable.io.cfg_sch_start_id             := this.io.ght_se_cfg_in(20,17)
-  u_ght_stable.io.cfg_sch_valid                := this.io.ght_se_cfg_valid
+  val sch_reset                                 = WireInit(0.U(1.W))
+  sch_reset                                    := Mux(((this.io.ght_se_cfg_valid === 1.U) && (this.io.ght_se_cfg_in(27,21) === 0xF.U)), 1.U, 0.U)
+
+  u_ght_stable.io.cfg_sch_end_id               := Mux(sch_reset === 1.U, 0.U, this.io.ght_se_cfg_in(31,28))
+  u_ght_stable.io.cfg_sch_policy               := Mux(sch_reset === 1.U, 0.U, this.io.ght_se_cfg_in(27,21))
+  u_ght_stable.io.cfg_sch_start_id             := Mux(sch_reset === 1.U, 0.U, this.io.ght_se_cfg_in(20,17))
+  u_ght_stable.io.cfg_sch_valid                := Mux(sch_reset === 1.U, 0.U, this.io.ght_se_cfg_valid)
 
   val sch_end_id                                = WireInit(0.U(4.W))
   val sch_policy                                = WireInit(0.U(7.W))
@@ -65,6 +69,8 @@ class GHT_SE (val params: GHT_SE_Params) extends Module with HasGHT_SE_IO
     u_sch_rr.io.core_na(i)                     := io.core_na(i)
   }
   core_d_rr                                    := u_sch_rr.io.core_d
+  u_sch_rr.io.rst_sch                          := sch_reset
+                          
 
   // round-robin-4 scheduler
   val u_sch_rrf                                 = Module (new GHT_SCH_RRF(GHT_SCH_Params (params.totalnumber_of_checkers)))
@@ -76,6 +82,7 @@ class GHT_SE (val params: GHT_SE_Params) extends Module with HasGHT_SE_IO
   for (i <- 0 to params.totalnumber_of_checkers - 1) {
     u_sch_rrf.io.core_na(i)                    := io.core_na(i)
   }
+  u_sch_rrf.io.rst_sch                         := sch_reset
 
   // round-robin-4 scheduler
   val u_sch_fp                                  = Module (new GHT_SCH_FP(GHT_SCH_Params (params.totalnumber_of_checkers)))
@@ -87,11 +94,17 @@ class GHT_SE (val params: GHT_SE_Params) extends Module with HasGHT_SE_IO
     u_sch_fp.io.core_na(i)                     := io.core_na(i)
   }
   core_d_fp                                    := u_sch_fp.io.core_d
+  u_sch_fp.io.rst_sch                          := sch_reset
 
-
-  io.core_d                                    := MuxCase(0.U, 
-                                                  Array((sch_policy === 1.U) -> core_d_rr,
-                                                        (sch_policy === 2.U) -> core_d_rrf,
-                                                        (sch_policy === 3.U) -> core_d_fp,
+  io.sch_hang                                  :=  MuxCase(0.U, 
+                                                    Array((sch_policy === 1.U) -> u_sch_rr.io.sch_hang ,
+                                                        (sch_policy === 2.U) -> u_sch_rrf.io.sch_hang,
+                                                        (sch_policy === 3.U) -> u_sch_fp.io.sch_hang,
                                                         ))
+
+  io.core_d                                    :=  MuxCase(0.U, 
+                                                    Array((sch_policy === 1.U) -> core_d_rr,
+                                                          (sch_policy === 2.U) -> core_d_rrf,
+                                                          (sch_policy === 3.U) -> core_d_fp,
+                                                          ))
 }

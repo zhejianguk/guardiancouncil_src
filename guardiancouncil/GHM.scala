@@ -107,7 +107,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     val if_filters_empty                           = io.ghm_status_in(31)
     val if_ghm_empty                               = Mux(((packet_dest_reg === 0.U) && (io.ghm_packet_dest === 0.U)), 1.U, 0.U)
 
-    val if_no_inflight_packets                     = if_checkers_empty & if_filters_empty & if_ghm_empty
+    val if_no_inflight_packets                     = if_checkers_empty & if_filters_empty & if_ghm_empty & u_agg.io.agg_empty
     val zeros_59bit                                = WireInit(0.U(59.W))
     for(i <- 0 to params.number_of_little_cores - 1) {
       io.ghm_packet_outs(i)                       := packet_out_wires(i)

@@ -21,6 +21,7 @@ class GHM_AGG_IO (params: GHM_AGG_Params) extends Bundle {
 
   val agg_packet_out                             = Output(UInt(params.width_GH_packet.W))
   val agg_core_full                              = Input(UInt(1.W))
+  val agg_empty                                  = Output(UInt(1.W))
 }
 
 
@@ -77,4 +78,6 @@ class GHT_AGG (val params: GHM_AGG_Params) extends Module with HasGHM_AGG_IO
   io.agg_packet_out                             := Mux((doPull(sch_index) && !agg_buffer_empty(sch_index)),
                                                         agg_buffer_data(sch_index),
                                                         0.U)
+
+  io.agg_empty                                  := agg_buffer_empty.reduce(_&_)
 }

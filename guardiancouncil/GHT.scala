@@ -58,6 +58,7 @@ trait HasGHT_IO extends BaseModule {
 
 class GHT (val params: GHTParams) extends Module with HasGHT_IO
 {
+   val sch_hang                                  = WireInit(0.U(1.W))
   //==========================================================
   // Filters
   //==========================================================
@@ -85,8 +86,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     u_ght_filters.io.ght_ft_pc_in(i)            := ght_pcaddr_in_ft(i)
     u_ght_filters.io.ght_prfs_rd_ft(i)          := ght_prfs_rd_ft(i) 
   }
-  u_ght_filters.io.ght_stall                    := this.io.ght_stall
-  this.io.core_hang_up                          := u_ght_filters.io.core_hang_up
+  u_ght_filters.io.ght_stall                    := (this.io.ght_stall || (sch_hang === 1.U))
   this.io.ght_buffer_status                     := u_ght_filters.io.ght_buffer_status
   
   // configuration path
@@ -183,6 +183,12 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   }
   core_d_all                                    := u_core_d_orgate.io.out
 
+  val sch_hangs                                  = WireInit(VecInit(Seq.fill(params.totalnumber_of_ses)(0.U(1.W))))
+  for (i <- 0 to params.totalnumber_of_ses - 1) {
+    sch_hangs(i)                                := u_ses(i).sch_hang
+  }
+  sch_hang                                      := sch_hangs.reduce(_|_)
+
 
   //==========================================================
   // AGG Configuration
@@ -202,6 +208,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   //==========================================================
   // Output generation
   //==========================================================
+  io.core_hang_up                               := u_ght_filters.io.core_hang_up
   io.ght_packet_out                             := ght_pack
   io.ght_packet_dest                            := core_d_all
   io.ghm_agg_core_id                            := agg_core_id
