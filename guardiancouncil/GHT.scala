@@ -2,6 +2,7 @@ package freechips.rocketchip.guardiancouncil
 
 
 import chisel3._
+import chisel3.util._
 import chisel3.experimental.{BaseModule}
 
 //==========================================================
@@ -58,7 +59,9 @@ trait HasGHT_IO extends BaseModule {
 
 class GHT (val params: GHTParams) extends Module with HasGHT_IO
 {
-   val sch_hang                                  = WireInit(0.U(1.W))
+  // Revisit: later to make it to the next hierarchy
+  val clkdiv_ratio                               = 4
+  val sch_hang                                   = WireInit(0.U(1.W))
   //==========================================================
   // Filters
   //==========================================================
@@ -77,7 +80,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     ght_prfs_rd_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_prfs_rd(i))
   }
 
-  val u_ght_filters                              = Module (new GHT_FILTERS_PRFS(GHT_FILTERS_PRFS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width, params.use_prfs)))
+  val u_ght_filters                              = Module (new GHT_FILTERS_PRFS(GHT_FILTERS_PRFS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width, params.use_prfs, clkdiv_ratio)))
 
   for (i <- 0 to params.core_width - 1) {  
     u_ght_filters.io.ght_ft_newcommit_in(i)     := new_commit_ft(i)
@@ -101,8 +104,8 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
 
   // execution path
   // using registers to break the critical path
-  val ght_pack                                   = RegInit(0.U((params.packet_size).W))
-  val inst_index                                 = RegInit(0.U(5.W))
+  val ght_pack                                   = WireInit(0.U((params.packet_size).W))
+  val inst_index                                 = WireInit(0.U(5.W))
   ght_pack                                      := u_ght_filters.io.packet_out
   inst_index                                    := u_ght_filters.io.ght_ft_inst_index
   
@@ -208,9 +211,14 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   //==========================================================
   // Output generation
   //==========================================================
+  val u_cdc                                      = Module (new GH_CDCH2L(GH_CDCH2L_Params(clkdiv_ratio, (params.totalnumber_of_checkers + params.packet_size))))
+  u_cdc.io.cdc_data_in                          := Cat(core_d_all, ght_pack)
+  u_cdc.io.cdc_push                             := Mux(core_d_all =/= 0.U, 1.U, 0.U)
+  u_cdc.io.cdc_pull                             := 0.U
+
   io.core_hang_up                               := u_ght_filters.io.core_hang_up
-  io.ght_packet_out                             := ght_pack
-  io.ght_packet_dest                            := core_d_all
+  io.ght_packet_out                             := u_cdc.io.cdc_data_out(params.packet_size-1, 0)
+  io.ght_packet_dest                            := u_cdc.io.cdc_data_out(params.totalnumber_of_checkers + params.packet_size-1, params.packet_size)
   io.ghm_agg_core_id                            := agg_core_id
   io.ght_filters_empty                          := u_ght_filters.io.ght_filters_empty
 

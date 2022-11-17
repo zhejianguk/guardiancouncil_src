@@ -12,7 +12,8 @@ case class GHT_FILTERS_PRFS_Params(
   totaltypes_of_insts: Int,
   packet_size: Int,
   core_width: Int,
-  use_prfs: Boolean
+  use_prfs: Boolean,
+  clkdiv_ratio: Int
 )
 
 //==========================================================
@@ -137,21 +138,24 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val fsm_second_nxt_state                      = WireInit(fsm_reset)
   val fsm_third_nxt_state                       = WireInit(fsm_reset)
   val fsm_fourth_nxt_state                      = WireInit(fsm_reset)
+  val div_counter                               = RegInit(0.U((log2Ceil(params.clkdiv_ratio)+1).W))
 
   switch (fsm_state) {
     is (fsm_reset){
       buffer_deq_valid                         := false.B
       packet                                   := 0.U
       inst_type                                := 0.U
+      div_counter                              := 0.U
       fsm_state                                := Mux(((!io.ght_stall) && (!buffer_empty(0))), fsm_reset_nxt_state, fsm_reset)
     }
 
     is (fsm_send_first){
-      when (!io.ght_stall) {
+      when (!io.ght_stall || (div_counter > 0.U)) {
         buffer_deq_valid                       := false.B
-        fsm_state                              := fsm_first_nxt_state
-        packet                                 := buffer_packet(0)
-        inst_type                              := Mux(buffer_packet(0) =/= 0.U, buffer_inst_type(0), 0.U)
+        packet                                 := Mux((div_counter === 0.U), buffer_packet(0), 0.U)
+        inst_type                              := Mux(((div_counter === 0.U) && (buffer_packet(0) =/= 0.U)), buffer_inst_type(0), 0.U)
+        div_counter                            := Mux((div_counter < (params.clkdiv_ratio - 1).U), div_counter + 1.U, 0.U)
+        fsm_state                              := Mux((div_counter < (params.clkdiv_ratio - 1).U), fsm_send_first, fsm_first_nxt_state)
       }.otherwise{
         buffer_deq_valid                       := false.B
         packet                                 := 0.U
@@ -161,11 +165,12 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     }
 
     is (fsm_send_second){
-      when (!io.ght_stall){
+      when (!io.ght_stall || (div_counter > 0.U)) {
         buffer_deq_valid                       := false.B
-        fsm_state                              := fsm_second_nxt_state
-        packet                                 := buffer_packet(1)
-        inst_type                              := Mux(buffer_packet(1) =/= 0.U, buffer_inst_type(1), 0.U)
+        packet                                 := Mux((div_counter === 0.U), buffer_packet(1), 0.U)
+        inst_type                              := Mux(((div_counter === 0.U) && (buffer_packet(1) =/= 0.U)), buffer_inst_type(1), 0.U)
+        div_counter                            := Mux((div_counter < (params.clkdiv_ratio - 1).U), div_counter + 1.U, 0.U)
+        fsm_state                              := Mux((div_counter < (params.clkdiv_ratio - 1).U), fsm_send_second, fsm_second_nxt_state)
       }.otherwise{
         buffer_deq_valid                       := false.B
         packet                                 := 0.U
@@ -173,14 +178,14 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         fsm_state                              := fsm_send_second
       }
     }
-    // These are used for 4-width Boom
-    // There are some work is required to make them generic
+
     is (fsm_send_third){
-      when (!io.ght_stall){
+      when (!io.ght_stall || (div_counter > 0.U)) {
         buffer_deq_valid                       := false.B
-        fsm_state                              := fsm_third_nxt_state
-        packet                                 := buffer_packet(2)
-        inst_type                              := Mux(buffer_packet(2) =/= 0.U, buffer_inst_type(2), 0.U)
+        packet                                 := Mux((div_counter === 0.U), buffer_packet(2), 0.U)
+        inst_type                              := Mux(((div_counter === 0.U) && (buffer_packet(2) =/= 0.U)), buffer_inst_type(2), 0.U)
+        div_counter                            := Mux((div_counter < (params.clkdiv_ratio - 1).U), div_counter + 1.U, 0.U)
+        fsm_state                              := Mux((div_counter < (params.clkdiv_ratio - 1).U), fsm_send_third, fsm_third_nxt_state)
       }.otherwise{
         buffer_deq_valid                       := false.B
         packet                                 := 0.U
@@ -190,11 +195,12 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     }
 
     is (fsm_send_fourth){
-      when (!io.ght_stall){
+      when (!io.ght_stall || (div_counter > 0.U)) {
         buffer_deq_valid                       := false.B
-        fsm_state                              := fsm_fourth_nxt_state
-        packet                                 := buffer_packet(3)
-        inst_type                              := Mux(buffer_packet(3) =/= 0.U, buffer_inst_type(3), 0.U)
+        packet                                 := Mux((div_counter === 0.U), buffer_packet(3), 0.U)
+        inst_type                              := Mux(((div_counter === 0.U) && (buffer_packet(3) =/= 0.U)), buffer_inst_type(3), 0.U)
+        div_counter                            := Mux((div_counter < (params.clkdiv_ratio - 1).U), div_counter + 1.U, 0.U)
+        fsm_state                              := Mux((div_counter < (params.clkdiv_ratio - 1).U), fsm_send_fourth, fsm_fourth_nxt_state)
       }.otherwise{
         buffer_deq_valid                       := false.B
         packet                                 := 0.U
