@@ -223,7 +223,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
     core.io.rocc.busy <> (cmdRouter.get.io.busy || outer.roccs.map(_.module.io.busy).reduce(_ || _))
     core.io.rocc.interrupt := outer.roccs.map(_.module.io.interrupt).reduce(_ || _)
     //===== GuardianCouncil Function: Start ====//
-    cmdRouter.get.io.ghe_packet_in := outer.ghe_packet_in_SKNode.bundle
+    cmdRouter.get.io.ghe_packet_in := ((outer.ghe_packet_in_SKNode.bundle) | (outer.agg_packet_in_SKNode.bundle))
     cmdRouter.get.io.ghe_status_in := outer.ghe_status_in_SKNode.bundle
     ghe_bridge.io.in := cmdRouter.get.io.ghe_event_out
     ght_bridge.io.in := cmdRouter.get.io.ght_mask_out

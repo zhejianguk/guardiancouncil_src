@@ -223,7 +223,7 @@ trait HasTileNotificationSinks { this: LazyModule =>
 
 //===== GuardianCouncil Function: Start ====//
 trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
-  val tile_ghm_agg_core_id_EPNode            = BundleBridgeEphemeralNode[UInt]()
+  val tile_ghm_agg_core_id_EPNode                = BundleBridgeEphemeralNode[UInt]()
   val tile_ght_packet_out_EPNode                 = BundleBridgeEphemeralNode[UInt]()
   val tile_ght_packet_dest_EPNode                = BundleBridgeEphemeralNode[UInt]()
   val tile_ght_status_out_EPNode                 = BundleBridgeEphemeralNode[UInt]()
@@ -246,6 +246,10 @@ trait HasGHnodes extends InstantiatesTiles { this: BaseSubsystem =>
   var tile_ght_sch_dorefresh_EPNodes             = Seq[BundleBridgeEphemeralNode[UInt]]()
 
   val tile_debug_gcounter_EPNode                 = BundleBridgeEphemeralNode[UInt]()
+  
+  var tile_agg_packet_in_EPNodes                 = Seq[BundleBridgeEphemeralNode[UInt]]()
+  val tile_agg_empty_EPNode                      = BundleBridgeEphemeralNode[UInt]()
+  val tile_agg_free_EPNode                       = BundleBridgeEphemeralNode[UInt]()
 }
 //===== GuardianCouncil Function: End ======//
 
@@ -421,6 +425,7 @@ trait CanAttachTile {
       domain.tile.bigcore_comp_in_SKNode  := context.tile_bigcore_comp_EPNode
       domain.tile.sch_na_inSKNode         := context.tile_sch_na_EPNode
       domain.tile.debug_gcounter_SKNode   := context.tile_debug_gcounter_EPNode
+      context.tile_agg_free_EPNode        := context.tile_agg_empty_EPNode
       println("#### Jessica #### Connecting GHT **Nodes** on the sub-system, HartID:", tileParams.hartId, "...!!")
     } else {
       val useless_bigcore_hang_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
@@ -478,6 +483,10 @@ trait CanAttachTile {
     val tile_ght_sch_dorefresh_EPNode = BundleBridgeEphemeralNode[UInt]()
     context.tile_ght_sch_dorefresh_EPNodes = context.tile_ght_sch_dorefresh_EPNodes :+ tile_ght_sch_dorefresh_EPNode
     tile_ght_sch_dorefresh_EPNode := domain.tile.ght_sch_dorefresh_SRNode
+
+    val tile_agg_packet_in_EPNode = BundleBridgeEphemeralNode[UInt]()
+    context.tile_agg_packet_in_EPNodes = context.tile_agg_packet_in_EPNodes :+ tile_agg_packet_in_EPNode
+    domain.tile.agg_packet_in_SKNode := tile_agg_packet_in_EPNode
 
     println("#### Jessica #### Connecting GHE **Nodes** on the sub-system, HartID:", tileParams.hartId, "...!!")
   }
