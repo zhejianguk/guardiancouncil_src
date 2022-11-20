@@ -8,7 +8,7 @@ import freechips.rocketchip.config.{Field, Parameters}
 import freechips.rocketchip.subsystem.{BaseSubsystem, HierarchicalLocation, HasTiles, TLBusWrapperLocation}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.prci.{ClockSinkDomain}
-
+import freechips.rocketchip.util.{Pow2ClockDivider}
 
 
 case class GAGGParams(
@@ -153,7 +153,9 @@ object GAGGCore {
 
     
     InModuleBody {
-      gagg.module.clock                           := bus.module.clock
+      val clk_div                                  = Module(new Pow2ClockDivider(2))
+      clk_div.clock                               := bus.module.clock
+      gagg.module.clock                           := clk_div.io.clock_out
       gagg.module.io.agg_core_id                  := ghm_agg_core_id_SKNode.bundle 
 
       for (i <- 0 to number_of_ghes-1) {
