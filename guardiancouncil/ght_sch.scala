@@ -81,6 +81,7 @@ class GHT_SCH_FP (val params: GHT_SCH_Params) extends Module with HasGHT_SCH_IO
   val sch_hang_reg                              = RegInit(0.U(1.W))
 
   when ((io.core_na(current_dest-1.U) === 1.U) && (io.core_na(nxt_dest-1.U) === 1.U)){
+    // We hang the big core, when current dest and next_dest are both unaviable.
     sch_hang_reg                               := 1.U
   } .otherwise {
     when ((sch_hang_reg === 1.U) && ((io.core_na(nxt_dest-1.U) === 0.U))){
@@ -97,8 +98,8 @@ class GHT_SCH_FP (val params: GHT_SCH_Params) extends Module with HasGHT_SCH_IO
   // bit 0 for checker 1, global ID: 1 
   change_dest                                  := ((io.core_na(current_dest-1.U) === 1.U) && (io.core_na(nxt_dest-1.U) === 0.U) || out_of_range)
 
-  // We hang the big core, when current dest and next_dest are both unaviable.
-  io.sch_hang                                  := Mux(((io.core_na(current_dest-1.U) === 1.U) && (io.core_na(nxt_dest-1.U) === 1.U)), 1.U, sch_hang_reg)
+  
+  io.sch_hang                                  := sch_hang_reg
   
   nxt_dest                                     := MuxCase(0.U, 
                                                     Array((out_of_range) -> io.core_s,

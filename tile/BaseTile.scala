@@ -266,6 +266,8 @@ abstract class BaseTile private (val crossing: ClockCrossingType, q: Parameters)
   val debug_gcounter_SKNode       = BundleBridgeSink[UInt](Some(() => UInt(64.W)))
 
   val agg_packet_in_SKNode        = BundleBridgeSink[UInt](Some(() => UInt(128.W)))
+
+  val ghm_ready_in_SKNode         = BundleBridgeSink[UInt](Some(() => UInt(1.W)))
   //===== GuardianCouncil Function: End ====//
   
   /** Nodes for connecting NMI interrupt sources and vectors into the tile */

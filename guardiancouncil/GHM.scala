@@ -31,6 +31,8 @@ class GHMIO(params: GHMParams) extends Bundle {
 
   val debug_gcounter                             = Output(UInt(64.W))
   val if_agg_free                                = Input(UInt(1.W))
+  
+  val ghm_ready                                  = Output(UInt(1.W))
 }
 
 trait HasGHMIO extends BaseModule {
@@ -106,6 +108,8 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     io.bigcore_comp                              := Cat(release, complete)
 
     io.debug_gcounter                            := debug_gcounter
+    
+    io.ghm_ready                                 := Mux((Cat(packet_dest_reg, packet_in_reg) =/= 0.U), 1.U, 0.U)
   }
 }
 
@@ -118,6 +122,7 @@ object GHMCore {
     val number_of_ghes                             = subsystem.tile_ghe_packet_in_EPNodes.size
   
     // Creating nodes for connections.
+    val ghm_ready_SRNode                           = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
     val bigcore_hang_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
     val bigcore_comp_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
     val ghm_ght_packet_in_SKNode                   = BundleBridgeSink[UInt](Some(() => UInt((params.width_GH_packet).W)))
@@ -151,6 +156,7 @@ object GHMCore {
     }
     subsystem.tile_bigcore_comp_EPNode            := bigcore_comp_SRNode
     subsystem.tile_bigcore_hang_EPNode            := bigcore_hang_SRNode
+    subsystem.tile_ghm_ready_EPNode               := ghm_ready_SRNode
 
     val debug_gcounter_SRNode                      = BundleBridgeSource[UInt](Some(() => UInt(64.W)))
     subsystem.tile_debug_gcounter_EPNode          := debug_gcounter_SRNode
@@ -181,6 +187,7 @@ object GHMCore {
       bigcore_hang_SRNode.bundle                  := ghm.module.io.bigcore_hang
       bigcore_comp_SRNode.bundle                  := ghm.module.io.bigcore_comp
       debug_gcounter_SRNode.bundle                := ghm.module.io.debug_gcounter
+      ghm_ready_SRNode.bundle                     := ghm.module.io.ghm_ready
     }
     ghm
   }

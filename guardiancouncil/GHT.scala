@@ -49,6 +49,8 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_filters_empty                         = Output(UInt(1.W))
   val debug_mcounter                            = Output(UInt(64.W))
   val debug_icounter                            = Output(UInt(64.W))
+
+  val ghm_ready                                 = Input(UInt(1.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -59,8 +61,7 @@ trait HasGHT_IO extends BaseModule {
 
 class GHT (val params: GHTParams) extends Module with HasGHT_IO
 {
-  // Revisit: later to make it to the next hierarchy
-  val clkdiv_ratio                               = 4
+  val cdc_busy                                   = WireInit(false.B)
   val sch_hang                                   = WireInit(0.U(1.W))
   //==========================================================
   // Filters
@@ -80,7 +81,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     ght_prfs_rd_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_prfs_rd(i))
   }
 
-  val u_ght_filters                              = Module (new GHT_FILTERS_PRFS(GHT_FILTERS_PRFS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width, params.use_prfs, clkdiv_ratio)))
+  val u_ght_filters                              = Module (new GHT_FILTERS_PRFS(GHT_FILTERS_PRFS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width, params.use_prfs)))
 
   for (i <- 0 to params.core_width - 1) {  
     u_ght_filters.io.ght_ft_newcommit_in(i)     := new_commit_ft(i)
@@ -124,6 +125,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     }
   }
 
+  u_ght_filters.io.cdc_busy                     := cdc_busy
  //==========================================================
   // Mapper
   //==========================================================
@@ -211,10 +213,11 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   //==========================================================
   // Output generation
   //==========================================================
-  val u_cdc                                      = Module (new GH_CDCH2L(GH_CDCH2L_Params(clkdiv_ratio, (params.totalnumber_of_checkers + params.packet_size))))
+  val u_cdc                                      = Module (new GH_CDCHS(GH_CDCH2L_Params(0, (params.totalnumber_of_checkers + params.packet_size))))
   u_cdc.io.cdc_data_in                          := Cat(core_d_all, ght_pack)
   u_cdc.io.cdc_push                             := Mux(core_d_all =/= 0.U, 1.U, 0.U)
-  u_cdc.io.cdc_pull                             := 0.U
+  u_cdc.io.cdc_pull                             := io.ghm_ready
+  cdc_busy                                      := Mux(u_cdc.io.cdc_busy === 1.U, true.B, false.B)
 
   io.core_hang_up                               := u_ght_filters.io.core_hang_up
   io.ght_packet_out                             := u_cdc.io.cdc_data_out(params.packet_size-1, 0)

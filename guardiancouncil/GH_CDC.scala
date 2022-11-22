@@ -116,3 +116,46 @@ class GH_CDCH2L (val params: GH_CDCH2L_Params) extends Module with HasGH_CDCH2L_
 
   }
 }
+
+
+
+class GH_CDCHS (val params: GH_CDCH2L_Params) extends Module with HasGH_CDCH2L_IO
+{
+  if (params.clkdiv_ratio == 1){
+    io.cdc_data_out                             := io.cdc_data_in
+    io.cdc_busy                                 := 0.U
+  } else {
+    val cdc_buffer                               = RegInit(0.U(params.data_width.W))
+    val cdc_data                                 = WireInit(0.U(params.data_width.W))
+    val cdc_busy                                 = WireInit(0.U(1.W))
+
+    val fsm_reset :: fsm_sending :: fsm_waiting :: Nil = Enum(3)
+    val fsm_state                                = RegInit(fsm_reset)
+    switch (fsm_state) {
+      is (fsm_reset){
+        cdc_buffer                              := Mux((io.cdc_push === 1.U), io.cdc_data_in, 0.U)
+        cdc_data                                := Mux((io.cdc_push === 1.U), io.cdc_data_in, 0.U)
+        fsm_state                               := Mux((io.cdc_push === 1.U), fsm_sending, fsm_reset)
+        cdc_busy                                := 0.U
+      }
+
+      is (fsm_sending){
+        cdc_buffer                              := Mux((io.cdc_pull === 1.U), 0.U, cdc_buffer)
+        cdc_data                                := Mux((io.cdc_pull === 1.U), 0.U, cdc_buffer)
+        fsm_state                               := Mux((io.cdc_pull === 1.U), fsm_waiting, fsm_sending)
+        cdc_busy                                := 1.U
+      }
+
+      is (fsm_waiting){
+        cdc_buffer                              := 0.U
+        cdc_data                                := 0.U
+        fsm_state                               := Mux((io.cdc_pull === 1.U), fsm_waiting, fsm_reset)
+        cdc_busy                                := Mux((io.cdc_pull === 1.U), 1.U, 0.U)
+      }
+    }
+
+
+    io.cdc_data_out                             := cdc_data
+    io.cdc_busy                                 := cdc_busy
+  }
+}

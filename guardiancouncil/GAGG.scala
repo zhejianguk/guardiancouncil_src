@@ -153,9 +153,7 @@ object GAGGCore {
 
     
     InModuleBody {
-      val clk_div                                  = Module(new Pow2ClockDivider(2))
-      clk_div.clock                               := bus.module.clock
-      gagg.module.clock                           := clk_div.io.clock_out
+      gagg.module.clock                           := bus.module.clock
       gagg.module.io.agg_core_id                  := ghm_agg_core_id_SKNode.bundle 
 
       for (i <- 0 to number_of_ghes-1) {
