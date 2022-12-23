@@ -29,8 +29,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Communication channel
     // Widith: xLen*2
-    // Depth: 24
-    val u_channel               = Module (new GH_FIFO(FIFOParams ((2*xLen), 24))) 
+    // Depth: 48
+    val u_channel               = Module (new GH_FIFO(FIFOParams ((2*xLen), 48))) 
 
 
     // Internal signals
@@ -67,18 +67,21 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doRefreshSch            = (cmd.fire && (funct === 0x21.U))
     val doDebug_ECounter        = (cmd.fire && (funct === 0x22.U))
     val doDebug_GCounter        = (cmd.fire && (funct === 0x23.U))
+    val doInitialised           = (cmd.fire && (funct === 0x24.U))
 
     // For big core
-    val doBigCheck              = (cmd.fire && (funct === 0x6.U))
+    val doBigCheckComp          = (cmd.fire && (funct === 0x6.U))
     val doMask                  = (cmd.fire && (funct === 0x6.U) && (rs2_val === 1.U))
     val doPID_Cfg               = (cmd.fire && (funct === 0x16.U))
     val doGHT_Cfg               = (cmd.fire && (funct === 0x6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
     val doGHTBufferCheck        = (cmd.fire && (funct === 0x8.U))
     val doCheckM_PPN            = (cmd.fire && (funct === 0x17.U))
     val doCheckM_SysMode        = (cmd.fire && (funct === 0x18.U))
-    val bigComp                 = io.bigcore_comp
+    val bigComp                 = io.bigcore_comp (1,0)
+    val bigInialised            = io.bigcore_comp (2)
     val doDebug_MCounter        = (cmd.fire && (funct === 0x19.U))
     val doDebug_ICounter        = (cmd.fire && (funct === 0x1a.U))
+    val doBigCheckIni           = (cmd.fire && (funct === 0x1b.U))
 
     val ghe_packet_in           = io.ghe_packet_in
     val doPush                  = (ghe_packet_in =/= 0.U) && !channel_full
@@ -86,6 +89,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val ghe_status_in           = io.ghe_status_in
     val ghe_status_reg          = RegInit(0x0.U(32.W))
     val ghe_event_reg           = RegInit(0x0.U(2.W))
+    val ghe_initialised_reg     = RegInit(0x0.U(1.W))
 
     val ght_status_reg          = RegInit(0.U(32.W))
     val ght_monitor_satp_ppn    = RegInit(0.U(44.W))
@@ -127,7 +131,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doCheckBigStatus    -> ghe_status_reg,
                                           doCheckAgg          -> Cat(zeros_62bits, io.agg_buffer_full, zeros_1bit),
                                           doCheckSch          -> Cat(zeros_63bits, channel_sch_na),
-                                          doBigCheck          -> Cat(bigComp, rs1_val(15, 0)),
+                                          doBigCheckComp      -> Cat(bigComp, rs1_val(15, 0)),
+                                          doBigCheckIni       -> Cat(bigInialised),
                                           doGHTBufferCheck    -> Cat(zeros_62bits, io.ght_buffer_status),
                                           doCheckM_PPN        -> Cat(zeros_20bits, ght_monitor_satp_ppn),
                                           doCheckM_SysMode    -> Cat(zeros_62bits, ght_monitor_sys_mode),
@@ -139,6 +144,10 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           )
     when (doEvent) {
       ghe_event_reg            := rs1_val(1,0)
+    }
+
+    when (doInitialised){
+      ghe_initialised_reg      := rs1_val(0)
     }
 
     when (channel_nearfull) {
@@ -154,7 +163,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     ghe_status_reg             := ghe_status_in
     cmd.ready                  := true.B // Currently, it is always ready, because it is never block
     
-    io.ghe_event_out           := Cat(ghe_event_reg, channel_warning)
+    io.ghe_event_out           := Cat(ghe_initialised_reg, ghe_event_reg, channel_warning)
     io.resp.valid              := cmd.valid && xd
     io.resp.bits.rd            := cmd.bits.inst.rd
     io.resp.bits.data          := rd_val

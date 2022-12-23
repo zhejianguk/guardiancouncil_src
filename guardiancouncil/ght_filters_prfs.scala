@@ -61,7 +61,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val inst_type                                 = WireInit(0.U(5.W))
 
   val u_ght_filters                             = Seq.fill(params.core_width) {Module(new GHT_FILTER_PRFS(GHT_FILTER_PRFS_Params(params.xlen, params.totaltypes_of_insts, params.packet_size, params.use_prfs)))}
-  val u_buffer                                  = Seq.fill(params.core_width) {Module(new GH_FIFO(FIFOParams (buffer_width, 10)))}
+  val u_buffer                                  = Seq.fill(params.core_width) {Module(new GH_FIFO(FIFOParams (buffer_width, 30)))}
 
   // Connecting filters
   val filter_inst_index                         = WireInit(VecInit(Seq.fill(params.core_width)(0.U(5.W))))
@@ -132,7 +132,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     is_valid_packet(i)                         := ((buffer_deq_data(i) =/= 0.U) & (buffer_inst_type(i) =/= 0.U))
   }
 
-  val fsm_reset :: fsm_send_first :: fsm_send_second :: fsm_send_third :: fsm_send_fourth :: fsm_dequeue :: Nil = Enum(6)
+  val fsm_reset :: fsm_send_first :: fsm_send_second :: fsm_send_third :: fsm_send_fourth :: Nil = Enum(5)
   val fsm_state                                 = RegInit(fsm_reset)
   val fsm_reset_nxt_state                       = WireInit(fsm_reset)
   val fsm_first_nxt_state                       = WireInit(fsm_reset)
@@ -159,7 +159,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         packet_sent                            := true.B
       } .otherwise {
         when (packet_sent){
-          buffer_deq_valid                     := false.B
+          buffer_deq_valid                     := Mux(((!io.cdc_busy) && (fsm_first_nxt_state === fsm_reset)), true.B, false.B)
           packet                               := 0.U
           inst_type                            := 0.U
           fsm_state                            := Mux(io.cdc_busy, fsm_send_first, fsm_first_nxt_state)
@@ -183,7 +183,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         packet_sent                            := true.B
       } .otherwise {
         when (packet_sent){
-          buffer_deq_valid                     := false.B
+          buffer_deq_valid                     := Mux(((!io.cdc_busy) && (fsm_second_nxt_state === fsm_reset)), true.B, false.B)
           packet                               := 0.U
           inst_type                            := 0.U
           fsm_state                            := Mux(io.cdc_busy, fsm_send_second, fsm_second_nxt_state)
@@ -207,7 +207,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         packet_sent                            := true.B
       } .otherwise {
         when (packet_sent){
-          buffer_deq_valid                     := false.B
+          buffer_deq_valid                     := Mux(((!io.cdc_busy) && (fsm_third_nxt_state === fsm_reset)), true.B, false.B)
           packet                               := 0.U
           inst_type                            := 0.U
           fsm_state                            := Mux(io.cdc_busy, fsm_send_third, fsm_third_nxt_state)
@@ -231,7 +231,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         packet_sent                            := true.B
       } .otherwise {
         when (packet_sent){
-          buffer_deq_valid                     := false.B
+          buffer_deq_valid                     := Mux((!io.cdc_busy), true.B, false.B)
           packet                               := 0.U
           inst_type                            := 0.U
           fsm_state                            := Mux(io.cdc_busy, fsm_send_fourth, fsm_fourth_nxt_state)
@@ -244,14 +244,6 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
           packet_sent                          := packet_sent
         }
       }
-    }
-
-    is (fsm_dequeue){
-        buffer_deq_valid                       := true.B
-        packet                                 := 0.U
-        inst_type                              := 0.U
-        fsm_state                              := fsm_reset
-        packet_sent                            := false.B
     }
   }
     
@@ -270,24 +262,24 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
                                                     Array((is_valid_packet(1) =/= 0.U)  -> fsm_send_second,
                                                           ((is_valid_packet(1) === 0.U) && (is_valid_packet(2) =/= 0.U))  -> fsm_send_third,
                                                           ((is_valid_packet(1) === 0.U) && (is_valid_packet(2) === 0.U) && (is_valid_packet(3) =/= 0.U))  -> fsm_send_fourth,
-                                                          ((is_valid_packet(1) === 0.U) && (is_valid_packet(2) === 0.U) && (is_valid_packet(3) === 0.U)) -> fsm_dequeue,
+                                                          ((is_valid_packet(1) === 0.U) && (is_valid_packet(2) === 0.U) && (is_valid_packet(3) === 0.U)) -> fsm_reset,
                                                           )
                                                           )
 
   fsm_second_nxt_state                         := MuxCase(fsm_send_second, 
                                                     Array((is_valid_packet(2) =/= 0.U)  -> fsm_send_third,
                                                           ((is_valid_packet(2) === 0.U) && (is_valid_packet(3) =/= 0.U))  -> fsm_send_fourth,
-                                                          ((is_valid_packet(2) === 0.U) && (is_valid_packet(3) === 0.U)) -> fsm_dequeue,
+                                                          ((is_valid_packet(2) === 0.U) && (is_valid_packet(3) === 0.U)) -> fsm_reset,
                                                           )
                                                           )
 
   fsm_third_nxt_state                         := MuxCase(fsm_send_third, 
                                                     Array((is_valid_packet(3) =/= 0.U)  -> fsm_send_fourth,
-                                                          (is_valid_packet(3) === 0.U) -> fsm_dequeue,
+                                                          (is_valid_packet(3) === 0.U) -> fsm_reset,
                                                           )
                                                           )
 
-  fsm_fourth_nxt_state                        := fsm_dequeue
+  fsm_fourth_nxt_state                        := fsm_reset
 
   // Outputs
   io.ght_ft_inst_index                        := inst_type

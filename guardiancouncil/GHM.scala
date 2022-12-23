@@ -25,9 +25,9 @@ class GHMIO(params: GHMParams) extends Bundle {
   val ghm_status_in                              = Input(UInt(32.W))
   val ghm_packet_outs                            = Output(Vec(params.number_of_little_cores, UInt(params.width_GH_packet.W)))
   val ghm_status_outs                            = Output(Vec(params.number_of_little_cores, UInt(32.W)))
-  val ghe_event_in                               = Input(Vec(params.number_of_little_cores, UInt(3.W)))
+  val ghe_event_in                               = Input(Vec(params.number_of_little_cores, UInt(4.W)))
   val bigcore_hang                               = Output(UInt(1.W))
-  val bigcore_comp                               = Output(UInt(2.W))
+  val bigcore_comp                               = Output(UInt(3.W))
 
   val debug_gcounter                             = Output(UInt(64.W))
   val if_agg_free                                = Input(UInt(1.W))
@@ -58,6 +58,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     var warning                                    = WireInit(0.U(1.W))
     var complete                                   = WireInit(1.U(1.W))
     var release                                    = WireInit(1.U(1.W))
+    var initalised                                 = WireInit(1.U(1.W))
 
     val debug_gcounter                             = RegInit (0.U(64.W))
 
@@ -98,6 +99,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
       warning                                     = warning | io.ghe_event_in(i)(0)
       complete                                    = complete & io.ghe_event_in(i)(1)
       release                                     = release & io.ghe_event_in(i)(2)
+      initalised                                  = initalised | io.ghe_event_in(i)(3)
     }
 
     when (io.ghm_packet_dest =/= 0.U) {
@@ -105,7 +107,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     }
 
     io.bigcore_hang                              := warning
-    io.bigcore_comp                              := Cat(release, complete)
+    io.bigcore_comp                              := Cat(initalised, release, complete)
 
     io.debug_gcounter                            := debug_gcounter
     
@@ -124,7 +126,7 @@ object GHMCore {
     // Creating nodes for connections.
     val ghm_ready_SRNode                           = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
     val bigcore_hang_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
-    val bigcore_comp_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
+    val bigcore_comp_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(3.W)))
     val ghm_ght_packet_in_SKNode                   = BundleBridgeSink[UInt](Some(() => UInt((params.width_GH_packet).W)))
     val ghm_ght_packet_dest_SKNode                 = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
 

@@ -432,7 +432,7 @@ trait CanAttachTile {
     } else {
       val useless_ghm_ready_SRNode         = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
       val useless_bigcore_hang_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
-      val useless_bigcore_comp_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
+      val useless_bigcore_comp_SRNode      = BundleBridgeSource[UInt](Some(() => UInt(3.W)))
       val useless_packet_SKNode            = BundleBridgeSink[UInt](Some(() => UInt(128.W)))
       val useless_agg_core_id_SKNode       = BundleBridgeSink[UInt](Some(() => UInt(16.W)))
       val useless_packet_dest_SKNode       = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
