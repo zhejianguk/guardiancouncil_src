@@ -24,6 +24,7 @@ class GHT_FILTER_PRFS_IO (params: GHT_FILTER_PRFS_Params) extends Bundle {
   val ght_ft_pc_in                              = Input(UInt(32.W))
   val ght_ft_newcommit_in                       = Input(Bool())
   val ght_ft_alu_in                             = Input(UInt(params.xlen.W))
+  val ght_ft_is_rvc_in                          = Input(UInt(1.W))
   val ght_ft_inst_index                         = Output(UInt(5.W))
   val packet_out                                = Output(UInt((params.packet_size).W))
   val ght_prfs_rd                               = Input(UInt(params.xlen.W))
@@ -50,6 +51,7 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
   val func                                      = WireInit(0.U(3.W))
   val opcode                                    = WireInit(0.U(7.W))
   val pc                                        = WireInit(0.U(32.W))
+  val is_rvc                                    = WireInit(0.U(1.W))
 
 
   val inst_reg                                  = RegInit(0.U(32.W))
@@ -66,6 +68,7 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
   func                                         := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in(14, 12), 0x0.U)
   opcode                                       := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in(6,0), 0x0.U)
   pc                                           := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_pc_in(31,0), 0x0.U)
+  is_rvc                                       := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_is_rvc_in, 0x0.U)
 
   inst_reg                                     := inst
   func_reg                                     := func
@@ -83,6 +86,7 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
   u_ght_ftable.io.inst_newcommit               := this.io.ght_ft_newcommit_in
   u_ght_ftable.io.inst_in_func                 := func
   u_ght_ftable.io.inst_in_opcode               := opcode
+  u_ght_ftable.io.inst_is_rvc                  := is_rvc
 
   val inst_index                                = WireInit(0.U(2.W))
   val dp_sel                                    = WireInit(0.U(2.W))

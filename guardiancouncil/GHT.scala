@@ -36,6 +36,7 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val new_commit                                = Input(Vec(params.core_width, Bool()))
   val ght_alu_in                                = Input(Vec(params.core_width, UInt(params.width_data.W)))
   val ght_prfs_rd                               = Input(Vec(params.core_width, UInt(params.width_data.W)))
+  val ght_is_rvc_in                             = Input(Vec(params.core_width, UInt(1.W)))
 
   val ght_stall                                 = Input(Bool())
   val core_hang_up                              = Output(UInt(1.W))
@@ -72,6 +73,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   val ght_inst_in_ft                             = WireInit(VecInit(Seq.fill(params.core_width)(0.U(32.W))))
   val ght_pcaddr_in_ft                           = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
   val ght_prfs_rd_ft                             = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.width_data.W))))
+  val ght_is_rvc_ft                              = WireInit(VecInit(Seq.fill(params.core_width)(0.U(1.W))))
 
   for (i<- 0 to params.core_width - 1){
     new_commit_ft(i)                            := Mux((io.ght_mask_in === 1.U), 0.U, this.io.new_commit(i))
@@ -79,6 +81,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     ght_inst_in_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_inst_in(i))
     ght_pcaddr_in_ft(i)                         := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_pcaddr_in(i))
     ght_prfs_rd_ft(i)                           := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_prfs_rd(i))
+    ght_is_rvc_ft(i)                            := Mux((io.ght_mask_in === 1.U), 0.U, this.io.ght_is_rvc_in(i))
   }
 
   val u_ght_filters                              = Module (new GHT_FILTERS_PRFS(GHT_FILTERS_PRFS_Params (params.width_data, params.totaltypes_of_insts, params.packet_size, params.core_width, params.use_prfs)))
@@ -88,7 +91,8 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     u_ght_filters.io.ght_ft_alu_in(i)           := ght_alu_in_ft(i)
     u_ght_filters.io.ght_ft_inst_in(i)          := ght_inst_in_ft(i)
     u_ght_filters.io.ght_ft_pc_in(i)            := ght_pcaddr_in_ft(i)
-    u_ght_filters.io.ght_prfs_rd_ft(i)          := ght_prfs_rd_ft(i) 
+    u_ght_filters.io.ght_prfs_rd_ft(i)          := ght_prfs_rd_ft(i)
+    u_ght_filters.io.ght_ft_is_rvc_in(i)        := ght_is_rvc_ft(i)
   }
   u_ght_filters.io.ght_stall                    := (this.io.ght_stall || (sch_hang === 1.U))
   this.io.ght_buffer_status                     := u_ght_filters.io.ght_buffer_status
