@@ -42,8 +42,6 @@ class GHT_FILTERS_PRFS_IO (params: GHT_FILTERS_PRFS_Params) extends Bundle {
   val ght_prfs_forward_prf                      = Output(Vec(params.core_width, Bool()))
 
   val ght_filters_empty                         = Output(UInt(1.W))
-  
-  val cdc_busy                                  = Input(Bool())
 }
 
 
@@ -142,110 +140,68 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val fsm_second_nxt_state                      = WireInit(fsm_reset)
   val fsm_third_nxt_state                       = WireInit(fsm_reset)
   val fsm_fourth_nxt_state                      = WireInit(fsm_reset)
-  val packet_sent                               = RegInit(false.B)
 
   switch (fsm_state) {
     is (fsm_reset){
       buffer_deq_valid                         := false.B
       packet                                   := 0.U
       inst_type                                := 0.U
-      fsm_state                                := Mux(((!io.ght_stall) && (!buffer_empty(0))), fsm_reset_nxt_state, fsm_reset)
-      packet_sent                              := false.B
+      fsm_state                                := Mux((!buffer_empty(0)), fsm_reset_nxt_state, fsm_reset)
     }
 
     is (fsm_send_first){
-      when ((!io.ght_stall) && (!io.cdc_busy) && (!packet_sent)) {
+      when (io.ght_stall) {
         buffer_deq_valid                       := false.B
-        packet                                 := buffer_packet(0)
-        inst_type                              := Mux((buffer_packet(0) =/= 0.U), buffer_inst_type(0), 0.U)
+        packet                                 := 0.U
+        inst_type                              := 0.U
         fsm_state                              := fsm_send_first
-        packet_sent                            := true.B
       } .otherwise {
-        when (packet_sent){
-          buffer_deq_valid                     := Mux(((!io.cdc_busy) && (fsm_first_nxt_state === fsm_reset)), true.B, false.B)
-          packet                               := 0.U
-          inst_type                            := 0.U
-          fsm_state                            := Mux(io.cdc_busy, fsm_send_first, fsm_first_nxt_state)
-          packet_sent                          := Mux(io.cdc_busy, packet_sent, false.B)
-        }. otherwise {
-          buffer_deq_valid                     := false.B
-          packet                               := 0.U
-          inst_type                            := 0.U
-          fsm_state                            := fsm_send_first
-          packet_sent                          := packet_sent
-        }
+        buffer_deq_valid                       := Mux((fsm_first_nxt_state === fsm_reset), true.B, false.B)
+        packet                                 := buffer_packet(0)
+        inst_type                              := buffer_inst_type(0)
+        fsm_state                              := fsm_first_nxt_state
       }
     }
 
     is (fsm_send_second){
-      when ((!io.ght_stall) && (!io.cdc_busy) && (!packet_sent)) {
+      when (io.ght_stall) {
         buffer_deq_valid                       := false.B
-        packet                                 := buffer_packet(1)
-        inst_type                              := Mux((buffer_packet(1) =/= 0.U), buffer_inst_type(1), 0.U)
+        packet                                 := 0.U
+        inst_type                              := 0.U
         fsm_state                              := fsm_send_second
-        packet_sent                            := true.B
       } .otherwise {
-        when (packet_sent){
-          buffer_deq_valid                     := Mux(((!io.cdc_busy) && (fsm_second_nxt_state === fsm_reset)), true.B, false.B)
-          packet                               := 0.U
-          inst_type                            := 0.U
-          fsm_state                            := Mux(io.cdc_busy, fsm_send_second, fsm_second_nxt_state)
-          packet_sent                          := Mux(io.cdc_busy, packet_sent, false.B)
-        }. otherwise {
-          buffer_deq_valid                     := false.B
-          packet                               := 0.U
-          inst_type                            := 0.U
-          fsm_state                            := fsm_send_second
-          packet_sent                          := packet_sent
-        }
+        buffer_deq_valid                       := Mux((fsm_second_nxt_state === fsm_reset), true.B, false.B)
+        packet                                 := buffer_packet(1)
+        inst_type                              := buffer_inst_type(1)
+        fsm_state                              := fsm_second_nxt_state
       }
     }
 
     is (fsm_send_third){
-      when ((!io.ght_stall) && (!io.cdc_busy) && (!packet_sent)) {
+      when (io.ght_stall) {
         buffer_deq_valid                       := false.B
-        packet                                 := buffer_packet(2)
-        inst_type                              := Mux((buffer_packet(2) =/= 0.U), buffer_inst_type(2), 0.U)
+        packet                                 := 0.U
+        inst_type                              := 0.U
         fsm_state                              := fsm_send_third
-        packet_sent                            := true.B
       } .otherwise {
-        when (packet_sent){
-          buffer_deq_valid                     := Mux(((!io.cdc_busy) && (fsm_third_nxt_state === fsm_reset)), true.B, false.B)
-          packet                               := 0.U
-          inst_type                            := 0.U
-          fsm_state                            := Mux(io.cdc_busy, fsm_send_third, fsm_third_nxt_state)
-          packet_sent                          := Mux(io.cdc_busy, packet_sent, false.B)
-        }. otherwise {
-          buffer_deq_valid                     := false.B
-          packet                               := 0.U
-          inst_type                            := 0.U
-          fsm_state                            := fsm_send_third
-          packet_sent                          := packet_sent
-        }
+        buffer_deq_valid                       := Mux((fsm_third_nxt_state === fsm_reset), true.B, false.B)
+        packet                                 := buffer_packet(2)
+        inst_type                              := buffer_inst_type(2)
+        fsm_state                              := fsm_third_nxt_state
       }
     }
 
     is (fsm_send_fourth){
-      when ((!io.ght_stall) && (!io.cdc_busy) && (!packet_sent)) {
+      when (io.ght_stall) {
         buffer_deq_valid                       := false.B
-        packet                                 := buffer_packet(3)
-        inst_type                              := Mux((buffer_packet(3) =/= 0.U), buffer_inst_type(3), 0.U)
+        packet                                 := 0.U
+        inst_type                              := 0.U
         fsm_state                              := fsm_send_fourth
-        packet_sent                            := true.B
       } .otherwise {
-        when (packet_sent){
-          buffer_deq_valid                     := Mux((!io.cdc_busy), true.B, false.B)
-          packet                               := 0.U
-          inst_type                            := 0.U
-          fsm_state                            := Mux(io.cdc_busy, fsm_send_fourth, fsm_fourth_nxt_state)
-          packet_sent                          := Mux(io.cdc_busy, packet_sent, false.B)
-        }. otherwise {
-          buffer_deq_valid                     := false.B
-          packet                               := 0.U
-          inst_type                            := 0.U
-          fsm_state                            := fsm_send_fourth
-          packet_sent                          := packet_sent
-        }
+        buffer_deq_valid                       := true.B
+        packet                                 := buffer_packet(3)
+        inst_type                              := buffer_inst_type(3)
+        fsm_state                              := fsm_fourth_nxt_state
       }
     }
   }
