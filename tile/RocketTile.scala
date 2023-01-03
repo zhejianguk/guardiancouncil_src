@@ -142,7 +142,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
 
   val core = Module(new Rocket(outer)(outer.p))
   val ght_bridge = Module(new GH_Bridge(GH_BridgeParams(1)))
-  val ghe_bridge = Module(new GH_Bridge(GH_BridgeParams(3)))
+  val ghe_bridge = Module(new GH_Bridge(GH_BridgeParams(5)))
   val ght_cfg_bridge = Module(new GH_Bridge(GH_BridgeParams(32)))
   val ght_cfg_v_bridge = Module(new GH_Bridge(GH_BridgeParams(1)))
 

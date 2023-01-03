@@ -30,7 +30,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // Communication channel
     // Widith: xLen*2
     // Depth: 48
-    val u_channel               = Module (new GH_FIFO(FIFOParams ((2*xLen), 48))) 
+    val u_channel               = Module (new GH_FIFO(FIFOParams ((2*xLen), 38))) 
 
 
     // Internal signals
@@ -83,7 +83,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doDebug_ICounter        = (cmd.fire && (funct === 0x1a.U))
     val doBigCheckIni           = (cmd.fire && (funct === 0x1b.U))
 
-    val ghe_packet_in           = io.ghe_packet_in
+    val ghe_packet_in           = RegInit(0x0.U((2*xLen).W))
+    ghe_packet_in              := io.ghe_packet_in
     val doPush                  = (ghe_packet_in =/= 0.U) && !channel_full
     val doPull                  = doPop_FirstHalf || doPop_SecondHalf
     val ghe_status_in           = io.ghe_status_in
@@ -163,7 +164,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     ghe_status_reg             := ghe_status_in
     cmd.ready                  := true.B // Currently, it is always ready, because it is never block
     
-    io.ghe_event_out           := Cat(ghe_initialised_reg, ghe_event_reg, channel_warning)
+    io.ghe_event_out           := Cat(doPush, ghe_initialised_reg, ghe_event_reg, channel_warning)
     io.resp.valid              := cmd.valid && xd
     io.resp.bits.rd            := cmd.bits.inst.rd
     io.resp.bits.data          := rd_val

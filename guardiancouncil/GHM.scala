@@ -25,7 +25,7 @@ class GHMIO(params: GHMParams) extends Bundle {
   val ghm_status_in                              = Input(UInt(32.W))
   val ghm_packet_outs                            = Output(Vec(params.number_of_little_cores, UInt(params.width_GH_packet.W)))
   val ghm_status_outs                            = Output(Vec(params.number_of_little_cores, UInt(32.W)))
-  val ghe_event_in                               = Input(Vec(params.number_of_little_cores, UInt(4.W)))
+  val ghe_event_in                               = Input(Vec(params.number_of_little_cores, UInt(5.W)))
   val bigcore_hang                               = Output(UInt(1.W))
   val bigcore_comp                               = Output(UInt(3.W))
 
@@ -47,29 +47,34 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     val io                                         = IO(new GHMIO(params))
 
     // Adding a register to avoid the critical path
-    val packet_in_reg                              = RegInit (0.U(params.width_GH_packet.W))
-    val packet_dest_reg                            = RegInit (0.U((params.number_of_little_cores+1).W))
+    val packet_dest                                = WireInit (0.U((params.number_of_little_cores+1).W))
     val packet_out_wires                           = WireInit (VecInit(Seq.fill(params.number_of_little_cores)(0.U(params.width_GH_packet.W))))
-    packet_in_reg                                 := io.ghm_packet_in
-    packet_dest_reg                               := io.ghm_packet_dest
+    val cdc_busy                                   = WireInit (VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
+    val cdc_empty                                  = WireInit (VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
+
+    val u_cdc                                      = Seq.fill(params.number_of_little_cores) {Module(new GH_CDCH2LFIFO_HandShake(GH_CDCH2L_Params (0, params.width_GH_packet, 19)))}
+
+    packet_dest                                   := io.ghm_packet_dest
+
+    // CDC
+    for (i <- 0 to params.number_of_little_cores - 1) {      
+      u_cdc(i).io.cdc_data_in                     := io.ghm_packet_in
+      u_cdc(i).io.cdc_push                        := packet_dest(i)
+      packet_out_wires(i)                         := u_cdc(i).io.cdc_data_out
+      u_cdc(i).io.cdc_pull                        := io.ghe_event_in(i)(4)
+      u_cdc(i).io.cdc_slave_busy                  := io.ghe_event_in(i)(0)
+      cdc_busy(i)                                 := u_cdc(i).io.cdc_busy
+      cdc_empty(i)                                := u_cdc(i).io.cdc_empty
+    }
+
+
     
     var warning                                    = WireInit(0.U(1.W))
     var complete                                   = WireInit(1.U(1.W))
     var release                                    = WireInit(1.U(1.W))
-    var initalised                                 = WireInit(1.U(1.W))
+    var initalised                                 = WireInit(0.U(1.W))
 
     val debug_gcounter                             = RegInit (0.U(64.W))
-
-    
-    
-    // Routing
-    for (i <- 0 to params.number_of_little_cores - 1) {
-      packet_out_wires(i)                         := MuxCase(0.U, 
-                                                      Array((packet_dest_reg(i) === 1.U) -> packet_in_reg,
-                                                            (packet_dest_reg(i) =/= 1.U) -> 0.U,
-                                                            )
-                                                            )
-    }
 
     // 2-cyecle delays are added to ensure all filtering activities are completed.
     val ghm_status_delay1_cycle                    = RegInit(0.U(5.W))
@@ -82,9 +87,9 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     ghm_status_delay4_cycle                       := ghm_status_delay3_cycle
 
     val if_filters_empty                           = io.ghm_status_in(31)
-    val if_ghm_empty                               = Mux(((packet_dest_reg === 0.U) && (io.ghm_packet_dest === 0.U)), 1.U, 0.U)
-
-    val if_no_inflight_packets                     = if_filters_empty & if_ghm_empty & io.if_agg_free
+    val if_ghm_empty                               = Mux((io.ghm_packet_dest === 0.U), 1.U, 0.U)
+    val if_cdc_empty                               = cdc_empty.reduce(_&_)
+    val if_no_inflight_packets                     = if_filters_empty & if_ghm_empty & io.if_agg_free & if_cdc_empty
 
     val zeros_59bit                                = WireInit(0.U(59.W))
     for(i <- 0 to params.number_of_little_cores - 1) {
@@ -94,7 +99,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
 
 
     for(i <- 0 to params.number_of_little_cores - 1) {
-      warning                                     = warning | io.ghe_event_in(i)(0)
+      warning                                     = warning | cdc_busy(i)
       complete                                    = complete & io.ghe_event_in(i)(1)
       release                                     = release & io.ghe_event_in(i)(2)
       initalised                                  = initalised | io.ghe_event_in(i)(3)
@@ -108,7 +113,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     io.bigcore_comp                              := Cat(initalised, release, complete)
 
     io.debug_gcounter                            := debug_gcounter
-      }
+  }
 }
 
 case class GHMCoreLocated(loc: HierarchicalLocation) extends Field[Option[GHMParams]](None)

@@ -187,7 +187,7 @@ class GH_CDCH2LFIFO_HandShake (val params: GH_CDCH2L_Params) extends Module with
     cdc_channel.io.deq_ready                    := cdc_channel_deq_ready
     cdc_channel_deq_data                        := cdc_channel.io.deq_bits
     cdc_channel_empty                           := cdc_channel.io.empty
-    cdc_channel_warning                         := cdc_channel.io.status_oneslot
+    cdc_channel_warning                         := cdc_channel.io.status_twoslots
     cdc_channel_full                            := cdc_channel.io.full
 
 
