@@ -16,8 +16,7 @@ class FIFOIO(params: FIFOParams) extends Bundle {
   val deq_ready= Input(Bool())
   val empty = Output(Bool())
   val deq_bits = Output(UInt(params.width.W))
-  val status_warning = Output(UInt(1.W))
-  val status_nearfull = Output(UInt(1.W))
+  val status_fourslots = Output(UInt(1.W))
   val status_threeslots = Output(UInt(1.W))
   val status_twoslots = Output(UInt(1.W))
 }
@@ -76,11 +75,7 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
   }
   
   // If the 
-  io.status_warning            := Mux(num_content > ((params.depth).U - 4.U), // Communition latency is 4 cycles, avoding to miss in-flight packet
-                                      1.U, 
-                                      0.U)
-
-  io.status_nearfull           := Mux(num_content > ((params.depth).U - 4.U - 1.U), // Avoding hang-up the big_core
+  io.status_fourslots          := Mux(num_content > ((params.depth).U - 4.U), // Avoding hang-up the big_core
                                       1.U, 
                                       0.U)
   
@@ -88,7 +83,7 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
                                       1.U, 
                                       0.U)
   
-  io.status_twoslots           := Mux(num_content > ((params.depth).U - 3.U),
+  io.status_twoslots           := Mux(num_content > ((params.depth).U - 2.U),
                                       1.U, 
                                       0.U)
 
