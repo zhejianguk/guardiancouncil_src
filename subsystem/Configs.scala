@@ -41,6 +41,12 @@ class BaseSubsystemConfig extends Config ((site, here, up) => {
   case FrontBusKey => FrontBusParams(
     beatBytes = site(XLen)/8,
     blockBytes = site(CacheBlockBytes))
+  //==========================================//
+  //===== GuardianCouncil Function: Start ====//
+  case GCBusKey => PeripheryBusParams(beatBytes = site(XLen)/8,
+                                      blockBytes = site(CacheBlockBytes)) // An unused bus, only providing the clocks
+  //===== GuardianCouncil Function: End ======//
+  //==========================================//
   // Additional device Parameters
   case BootROMLocated(InSubsystem) => Some(BootROMParams(contentFileName = "./bootrom/bootrom.img"))
   //==========================================//
@@ -74,6 +80,7 @@ class WithIncoherentBusTopology extends Config((site, here, up) => {
       pbus = site(PeripheryBusKey),
       fbus = site(FrontBusKey),
       cbus = site(ControlBusKey),
+      gbus = site(GCBusKey),
       xTypes = SubsystemCrossingParams()))
 })
 
@@ -84,6 +91,7 @@ class WithCoherentBusTopology extends Config((site, here, up) => {
       pbus = site(PeripheryBusKey),
       fbus = site(FrontBusKey),
       cbus = site(ControlBusKey),
+      gbus = site(GCBusKey),
       xTypes = SubsystemCrossingParams(
         sbusToCbusXType = site(SbusToCbusXTypeKey),
         cbusToPbusXType = site(CbusToPbusXTypeKey),
@@ -516,6 +524,10 @@ class WithFrontBusFrequency(freqMHz: Double) extends Config((site, here, up) => 
 })
 class WithControlBusFrequency(freqMHz: Double) extends Config((site, here, up) => {
   case ControlBusKey => up(ControlBusKey, site).copy(dtsFrequency = Some(BigInt((freqMHz * 1e6).round)))
+})
+
+class WithGCBusFrequency(freqMHz: Double) extends Config((site, here, up) => {
+  case GCBusKey => up(GCBusKey, site).copy(dtsFrequency = Some(BigInt((freqMHz * 1e6).round)))
 })
 
 /** Under the default multi-bus topologies, this leaves bus ClockSinks undriven by the topology itself */

@@ -15,6 +15,7 @@ case object FrontBusKey extends Field[FrontBusParams]
 case object PeripheryBusKey extends Field[PeripheryBusParams]
 case object ControlBusKey extends Field[PeripheryBusParams]
 case object MemoryBusKey extends Field[MemoryBusParams]
+case object GCBusKey extends Field[PeripheryBusParams]
 
 // These objects serve as labels for specified attachment locations
 //   from amongst the five traditional tilelink bus wrappers.
@@ -29,6 +30,7 @@ case object FBUS extends TLBusWrapperLocation("subsystem_fbus")
 case object MBUS extends TLBusWrapperLocation("subsystem_mbus")
 case object CBUS extends TLBusWrapperLocation("subsystem_cbus")
 case object L2   extends TLBusWrapperLocation("subsystem_l2")
+case object GBUS extends TLBusWrapperLocation("subsystem_gbus")
 
 /** Parameterizes the subsystem in terms of optional clock-crossings
   *   that are insertable between some of the five traditional tilelink bus wrappers.
@@ -74,17 +76,21 @@ case class HierarchicalBusTopologyParams(
   pbus: PeripheryBusParams,
   fbus: FrontBusParams,
   cbus: PeripheryBusParams,
+  gbus: PeripheryBusParams,
   xTypes: SubsystemCrossingParams,
   driveClocksFromSBus: Boolean = true
 ) extends TLBusWrapperTopology(
   instantiations = List(
     (PBUS, pbus),
     (FBUS, fbus),
-    (CBUS, cbus)),
+    (CBUS, cbus),
+    (GBUS, gbus)),
   connections = List(
     (SBUS, CBUS, TLBusWrapperConnection  .crossTo(xTypes.sbusToCbusXType, if (driveClocksFromSBus) Some(true) else None)),
     (CBUS, PBUS, TLBusWrapperConnection  .crossTo(xTypes.cbusToPbusXType, if (driveClocksFromSBus) Some(true) else None)),
-    (FBUS, SBUS, TLBusWrapperConnection.crossFrom(xTypes.fbusToSbusXType, if (driveClocksFromSBus) Some(false) else None)))
+    (FBUS, SBUS, TLBusWrapperConnection.crossFrom(xTypes.fbusToSbusXType, if (driveClocksFromSBus) Some(false) else None)),
+    (PBUS, GBUS, TLBusWrapperConnection  .crossTo(xTypes.cbusToPbusXType, if (driveClocksFromSBus) Some(true) else None)),
+    )
 )
 
 /** Parameterization of a topology containing a banked coherence manager and a bus for attaching memory devices. */
