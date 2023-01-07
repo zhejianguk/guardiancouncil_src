@@ -82,6 +82,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doDebug_MCounter        = (cmd.fire && (funct === 0x19.U))
     val doDebug_ICounter        = (cmd.fire && (funct === 0x1a.U))
     val doBigCheckIni           = (cmd.fire && (funct === 0x1b.U))
+    val doSetActivatedCheckers  = (cmd.fire && (funct === 0x1c.U))
 
     val ghe_packet_in           = RegInit(0x0.U((2*xLen).W))
     ghe_packet_in              := io.ghe_packet_in
@@ -96,6 +97,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val ght_monitor_satp_ppn    = RegInit(0.U(44.W))
     val ght_monitor_sys_mode    = RegInit(0.U(2.W))
     val has_monitor_target      = RegInit(0.U(1.W))
+    val num_activated_cores     = RegInit(0.U(8.W))
 
     // Debug 
     val ECounter                = RegInit(0.U(64.W))
@@ -176,9 +178,14 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // 0: test is not start; 
     // 1: test is started
     // 2: test is finished 
+    // 30 - 23: number of activated cores
     // Registers 
     when (doMask) {
       ght_status_reg           := rs1_val
+    }
+
+    when (doSetActivatedCheckers) {
+      num_activated_cores      := rs1_val
     }
 
     val define_monitor_target   = WireInit(0.U(1.W))
@@ -205,7 +212,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     io.ght_cfg_out             := Mux(doGHT_Cfg, rs1_val(31,0), 0.U) 
     io.ght_cfg_valid           := Mux(doGHT_Cfg, 1.U, 0.U)
     io.ght_mask_out            := ~(ght_status_reg(0))
-    io.ght_status_out          := ght_status_reg
+    io.ght_status_out          := Cat(0.U, num_activated_cores, ght_status_reg(22,0))
 
     io.agg_packet_out          := Mux(doPushAgg, Cat(rs1_val, rs2_val), 0.U);
     io.agg_core_status           := Cat(channel_full, channel_empty)

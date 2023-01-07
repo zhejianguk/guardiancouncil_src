@@ -72,7 +72,20 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     var warning                                    = WireInit(0.U(1.W))
     var complete                                   = WireInit(1.U(1.W))
     var release                                    = WireInit(1.U(1.W))
-    var initalised                                 = WireInit(0.U(1.W))
+
+    val num_of_activated_cores                     = io.ghm_status_in(30, 23)
+    // var if_sys_initalised                          = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
+    val if_sys_initalised_reg                      = RegInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
+    val initalised                                 = WireInit(0.U(1.W))
+    if_sys_initalised_reg(0)                      := io.ghe_event_in(0)(3)
+    if_sys_initalised_reg(1)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3)
+    if_sys_initalised_reg(2)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3)
+    if_sys_initalised_reg(3)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3)
+    if_sys_initalised_reg(4)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3) & io.ghe_event_in(4)(3)
+    if_sys_initalised_reg(5)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3) & io.ghe_event_in(4)(3) & io.ghe_event_in(5)(3)
+    // if_sys_initalised_reg(6)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3) & io.ghe_event_in(4)(3) & io.ghe_event_in(5)(3) & io.ghe_event_in(6)(3)
+    // if_sys_initalised_reg(7)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3) & io.ghe_event_in(4)(3) & io.ghe_event_in(5)(3) & io.ghe_event_in(6)(3) & io.ghe_event_in(7)(3)
+    initalised                                    := if_sys_initalised_reg(num_of_activated_cores-1.U)
 
     val debug_gcounter                             = RegInit (0.U(64.W))
 
@@ -102,7 +115,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
       warning                                     = warning | cdc_busy(i)
       complete                                    = complete & io.ghe_event_in(i)(1)
       release                                     = release & io.ghe_event_in(i)(2)
-      initalised                                  = initalised | io.ghe_event_in(i)(3)
+      // initalised                                  = initalised | io.ghe_event_in(i)(3)
     }
 
     when (io.ghm_packet_dest =/= 0.U) {
