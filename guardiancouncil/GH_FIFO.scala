@@ -16,7 +16,6 @@ class FIFOIO(params: FIFOParams) extends Bundle {
   val deq_ready= Input(Bool())
   val empty = Output(Bool())
   val deq_bits = Output(UInt(params.width.W))
-  val status_fourslots = Output(UInt(1.W))
   val status_threeslots = Output(UInt(1.W))
   val status_twoslots = Output(UInt(1.W))
 }
@@ -74,19 +73,14 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
     incrRead                   := true.B
   }
   
-  // If the 
-  io.status_fourslots          := Mux(num_content > ((params.depth).U - 4.U), // Avoding hang-up the big_core
-                                      1.U, 
-                                      0.U)
-  
-  io.status_threeslots         := Mux(num_content > ((params.depth).U - 3.U),
+  io.status_threeslots         := Mux(num_content > ((params.depth).U - 3.U), // Avoding hang-up the big_core
                                       1.U, 
                                       0.U)
   
   io.status_twoslots           := Mux(num_content > ((params.depth).U - 2.U),
                                       1.U, 
                                       0.U)
-
+  
   io.deq_bits                  := memReg(readPtr)
   io.full                      := fullReg
   io.empty                     := emptyReg

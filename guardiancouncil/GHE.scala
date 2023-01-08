@@ -30,7 +30,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // Communication channel
     // Widith: xLen*2
     // Depth: 48
-    val u_channel               = Module (new GH_FIFO(FIFOParams ((2*xLen), 38))) 
+    val u_channel               = Module (new GH_FIFO(FIFOParams ((2*xLen), 17))) 
 
 
     // Internal signals
@@ -50,7 +50,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     channel_deq_data           := u_channel.io.deq_bits
     channel_empty              := u_channel.io.empty
     channel_full               := u_channel.io.full
-    channel_nearfull           := u_channel.io.status_fourslots
+    channel_nearfull           := u_channel.io.status_threeslots
     channel_warning            := u_channel.io.status_twoslots
 
     // Software Funcs
