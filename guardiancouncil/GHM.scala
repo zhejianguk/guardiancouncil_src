@@ -77,15 +77,23 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     // var if_sys_initalised                          = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
     val if_sys_initalised_reg                      = RegInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
     val initalised                                 = WireInit(0.U(1.W))
-    if_sys_initalised_reg(0)                      := io.ghe_event_in(0)(3)
-    if_sys_initalised_reg(1)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3)
-    if_sys_initalised_reg(2)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3)
-    if_sys_initalised_reg(3)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3)
-    if_sys_initalised_reg(4)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3) & io.ghe_event_in(4)(3)
-    if_sys_initalised_reg(5)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3) & io.ghe_event_in(4)(3) & io.ghe_event_in(5)(3)
-    // if_sys_initalised_reg(6)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3) & io.ghe_event_in(4)(3) & io.ghe_event_in(5)(3) & io.ghe_event_in(6)(3)
-    // if_sys_initalised_reg(7)                      := io.ghe_event_in(0)(3) & io.ghe_event_in(1)(3) & io.ghe_event_in(2)(3) & io.ghe_event_in(3)(3) & io.ghe_event_in(4)(3) & io.ghe_event_in(5)(3) & io.ghe_event_in(6)(3) & io.ghe_event_in(7)(3)
+
     initalised                                    := if_sys_initalised_reg(num_of_activated_cores-1.U)
+    val u_and_gates                                = Seq.fill(params.number_of_little_cores) {Module(new GH_ANDGATE(ANDGATEParams (1, params.number_of_little_cores)))}
+
+    for (i <- 0 to params.number_of_little_cores - 1){
+      for (j <- 0 to params.number_of_little_cores - 1){
+        if (j > i){
+          u_and_gates(i).io.in(j)                  := 1.U
+        } else {
+          u_and_gates(i).io.in(j)                  := io.ghe_event_in(j)(3)
+        }
+      }
+      if_sys_initalised_reg(i)                     := u_and_gates(i).io.out
+    }
+
+
+
 
     val debug_gcounter                             = RegInit (0.U(64.W))
 
