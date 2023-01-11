@@ -18,6 +18,7 @@ class FIFOIO(params: FIFOParams) extends Bundle {
   val deq_bits = Output(UInt(params.width.W))
   val status_threeslots = Output(UInt(1.W))
   val status_twoslots = Output(UInt(1.W))
+  val num_content = Output(UInt(log2Ceil(params.depth).W))
 }
 
 trait HasFIFOIO extends BaseModule {
@@ -47,10 +48,7 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
 
   val emptyReg                  = RegInit(true.B)
   val fullReg                   = RegInit(false.B)
-
-  val num_content               = Mux((writePtr >= readPtr) && !fullReg,
-                                      writePtr - readPtr, 
-                                      writePtr + params.depth.U - readPtr)
+  val num_contentReg            = RegInit(0.U(log2Ceil(params.depth).W))
 
   when ((io.enq_valid && !fullReg) && (io.deq_ready && !emptyReg)) {
     memReg(writePtr)           := io.enq_bits
@@ -58,6 +56,7 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
     fullReg                    := false.B
     incrWrite                  := true.B
     incrRead                   := true.B
+    num_contentReg             := num_contentReg
   }
 
   when ((io.enq_valid && !fullReg) && !(io.deq_ready && !emptyReg)){
@@ -65,24 +64,27 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
     emptyReg                   := false.B
     fullReg                    := nextWrite === readPtr
     incrWrite                  := true.B
+    num_contentReg             := num_contentReg + 1.U
   }
     
   when (!(io.enq_valid && !fullReg) && (io.deq_ready && !emptyReg)) {
     emptyReg                   := nextRead === writePtr
     fullReg                    := false.B
     incrRead                   := true.B
+    num_contentReg             := num_contentReg - 1.U
   }
   
-  io.status_threeslots         := Mux(num_content > ((params.depth).U - 3.U), // Avoding hang-up the big_core
+  io.status_threeslots         := Mux(num_contentReg > ((params.depth).U - 3.U), // Avoding hang-up the big_core
                                       1.U, 
                                       0.U)
   
-  io.status_twoslots           := Mux(num_content > ((params.depth).U - 2.U),
+  io.status_twoslots           := Mux(num_contentReg > ((params.depth).U - 2.U),
                                       1.U, 
                                       0.U)
   
   io.deq_bits                  := memReg(readPtr)
   io.full                      := fullReg
   io.empty                     := emptyReg
+  io.num_content               := num_contentReg
 }
 

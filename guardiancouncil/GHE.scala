@@ -68,6 +68,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doDebug_ECounter        = (cmd.fire && (funct === 0x22.U))
     val doDebug_GCounter        = (cmd.fire && (funct === 0x23.U))
     val doInitialised           = (cmd.fire && (funct === 0x24.U))
+    val doCheckFIFOUsage        = (cmd.fire && (funct === 0x25.U))
 
     // For big core
     val doBigCheckComp          = (cmd.fire && (funct === 0x6.U))
@@ -142,7 +143,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doDebug_MCounter    -> io.debug_mcounter,
                                           doDebug_ICounter    -> io.debug_icounter,
                                           doDebug_ECounter    -> ECounter,
-                                          doDebug_GCounter    -> io.debug_gcounter
+                                          doDebug_GCounter    -> io.debug_gcounter,
+                                          doCheckFIFOUsage    -> u_channel.io.num_content
                                           )
                                           )
     when (doEvent) {
