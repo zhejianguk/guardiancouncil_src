@@ -134,6 +134,6 @@ class GH_CDCH2LFIFO_HandShake (val params: GH_CDCH2L_Params) extends Module with
 
     io.cdc_data_out                               := cdc_data
     io.cdc_busy                                   := cdc_channel.io.status_twoslots
-    io.cdc_empty                                  := cdc_channel_empty
+    io.cdc_empty                                  := cdc_channel_empty & (cdc_data === 0.U)
   }
 }

@@ -2,7 +2,6 @@ package freechips.rocketchip.guardiancouncil
 
 
 import chisel3._
-import chisel3.util._
 import chisel3.experimental.{BaseModule}
 
 //==========================================================
@@ -217,7 +216,7 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   io.ght_packet_out                             := ght_pack
   io.ght_packet_dest                            := core_d_all
   io.ghm_agg_core_id                            := agg_core_id
-  io.ght_filters_empty                          := u_ght_filters.io.ght_filters_empty
+  io.ght_filters_empty                          := u_ght_filters.io.ght_filters_empty & (core_d_all === 0.U) & (ght_pack === 0.U)
 
   val debug_mcounter                             = RegInit(0.U(64.W))
   val debug_icounter                             = RegInit(0.U(64.W))

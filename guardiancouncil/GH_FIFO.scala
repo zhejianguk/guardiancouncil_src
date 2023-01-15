@@ -19,6 +19,9 @@ class FIFOIO(params: FIFOParams) extends Bundle {
   val status_threeslots = Output(UInt(1.W))
   val status_twoslots = Output(UInt(1.W))
   val num_content = Output(UInt(log2Ceil(params.depth).W))
+
+  val debug_fcounter = Output(UInt(64.W))
+  val debug_fdcounter = Output(UInt(64.W))
 }
 
 trait HasFIFOIO extends BaseModule {
@@ -49,6 +52,8 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
   val emptyReg                  = RegInit(true.B)
   val fullReg                   = RegInit(false.B)
   val num_contentReg            = RegInit(0.U(log2Ceil(params.depth).W))
+  val debug_fcounter            = RegInit(0.U(64.W))
+  val debug_fdcounter           = RegInit(0.U(64.W))
 
   when ((io.enq_valid && !fullReg) && (io.deq_ready && !emptyReg)) {
     memReg(writePtr)           := io.enq_bits
@@ -57,6 +62,8 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
     incrWrite                  := true.B
     incrRead                   := true.B
     num_contentReg             := num_contentReg
+    debug_fcounter             := debug_fcounter + 1.U
+    debug_fdcounter            := debug_fdcounter + 1.U
   }
 
   when ((io.enq_valid && !fullReg) && !(io.deq_ready && !emptyReg)){
@@ -65,6 +72,7 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
     fullReg                    := nextWrite === readPtr
     incrWrite                  := true.B
     num_contentReg             := num_contentReg + 1.U
+    debug_fcounter             := debug_fcounter + 1.U
   }
     
   when (!(io.enq_valid && !fullReg) && (io.deq_ready && !emptyReg)) {
@@ -72,13 +80,14 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
     fullReg                    := false.B
     incrRead                   := true.B
     num_contentReg             := num_contentReg - 1.U
+    debug_fdcounter            := debug_fdcounter + 1.U
   }
   
-  io.status_threeslots         := Mux(num_contentReg > ((params.depth).U - 3.U), // Avoding hang-up the big_core
+  io.status_threeslots         := Mux(num_contentReg >= ((params.depth).U - 4.U),
                                       1.U, 
                                       0.U)
   
-  io.status_twoslots           := Mux(num_contentReg > ((params.depth).U - 2.U),
+  io.status_twoslots           := Mux(num_contentReg >= ((params.depth).U - 3.U),
                                       1.U, 
                                       0.U)
   
@@ -86,5 +95,6 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
   io.full                      := fullReg
   io.empty                     := emptyReg
   io.num_content               := num_contentReg
+  io.debug_fcounter            := debug_fcounter
+  io.debug_fdcounter           := debug_fdcounter
 }
-

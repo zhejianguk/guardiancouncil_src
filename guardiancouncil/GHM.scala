@@ -7,7 +7,6 @@ import chisel3.experimental.{BaseModule}
 import freechips.rocketchip.config.{Field, Parameters}
 import freechips.rocketchip.subsystem.{BaseSubsystem, HierarchicalLocation, HasTiles, TLBusWrapperLocation}
 import freechips.rocketchip.diplomacy._
-import freechips.rocketchip.prci.{ClockSinkDomain}
 
 
 
@@ -74,7 +73,6 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     var release                                    = WireInit(1.U(1.W))
 
     val num_of_activated_cores                     = io.ghm_status_in(30, 23)
-    // var if_sys_initalised                          = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
     val if_sys_initalised_reg                      = RegInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
     val initalised                                 = WireInit(0.U(1.W))
 
@@ -108,7 +106,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     ghm_status_delay4_cycle                       := ghm_status_delay3_cycle
 
     val if_filters_empty                           = io.ghm_status_in(31)
-    val if_ghm_empty                               = Mux((io.ghm_packet_dest === 0.U), 1.U, 0.U)
+    val if_ghm_empty                               = Mux(((io.ghm_packet_dest === 0.U) && (io.ghm_packet_in === 0.U)), 1.U, 0.U)
     val if_cdc_empty                               = cdc_empty.reduce(_&_)
     val if_no_inflight_packets                     = if_filters_empty & if_ghm_empty & io.if_agg_free & if_cdc_empty
 
@@ -123,7 +121,6 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
       warning                                     = warning | cdc_busy(i)
       complete                                    = complete & io.ghe_event_in(i)(1)
       release                                     = release & io.ghe_event_in(i)(2)
-      // initalised                                  = initalised | io.ghe_event_in(i)(3)
     }
 
     when (io.ghm_packet_dest =/= 0.U) {

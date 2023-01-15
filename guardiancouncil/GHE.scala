@@ -69,6 +69,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doDebug_GCounter        = (cmd.fire && (funct === 0x23.U))
     val doInitialised           = (cmd.fire && (funct === 0x24.U))
     val doCheckFIFOUsage        = (cmd.fire && (funct === 0x25.U))
+    val doCheckFIFOCounter      = (cmd.fire && (funct === 0x26.U))
+    val doCheckFIFODCounter     = (cmd.fire && (funct === 0x27.U))
 
     // For big core
     val doBigCheckComp          = (cmd.fire && (funct === 0x6.U))
@@ -144,7 +146,9 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doDebug_ICounter    -> io.debug_icounter,
                                           doDebug_ECounter    -> ECounter,
                                           doDebug_GCounter    -> io.debug_gcounter,
-                                          doCheckFIFOUsage    -> u_channel.io.num_content
+                                          doCheckFIFOUsage    -> u_channel.io.num_content,
+                                          doCheckFIFOCounter  -> u_channel.io.debug_fcounter,
+                                          doCheckFIFODCounter -> u_channel.io.debug_fdcounter
                                           )
                                           )
     when (doEvent) {
@@ -217,7 +221,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     io.ght_status_out          := Cat(0.U, num_activated_cores, ght_status_reg(22,0))
 
     io.agg_packet_out          := Mux(doPushAgg, Cat(rs1_val, rs2_val), 0.U);
-    io.agg_core_status           := Cat(channel_full, channel_empty)
+    io.agg_core_status         := Cat(channel_full, (channel_empty & (ghe_packet_in === 0.U)))
     io.ght_sch_dorefresh       := Mux(doRefreshSch, rs1_val(31, 0), 0.U)
     io.ght_sch_na              := channel_sch_na
 }
