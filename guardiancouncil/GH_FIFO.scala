@@ -83,11 +83,11 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
     debug_fdcounter            := debug_fdcounter + 1.U
   }
   
-  io.status_threeslots         := Mux(num_contentReg >= ((params.depth).U - 4.U),
+  io.status_threeslots         := Mux(num_contentReg >= ((params.depth).U - 3.U),
                                       1.U, 
                                       0.U)
   
-  io.status_twoslots           := Mux(num_contentReg >= ((params.depth).U - 3.U),
+  io.status_twoslots           := Mux(num_contentReg >= ((params.depth).U - 2.U),
                                       1.U, 
                                       0.U)
   
