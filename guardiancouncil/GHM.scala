@@ -51,7 +51,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     val cdc_busy                                   = WireInit (VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
     val cdc_empty                                  = WireInit (VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
 
-    val u_cdc                                      = Seq.fill(params.number_of_little_cores) {Module(new GH_CDCH2LFIFO_HandShake(GH_CDCH2L_Params (0, params.width_GH_packet, 20)))}
+    val u_cdc                                      = Seq.fill(params.number_of_little_cores) {Module(new GH_CDCH2LFIFO_HandShake(GH_CDCH2L_Params (0, params.width_GH_packet, 30)))}
 
     packet_dest                                   := io.ghm_packet_dest
 

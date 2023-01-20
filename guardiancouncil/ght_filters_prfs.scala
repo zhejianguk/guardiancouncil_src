@@ -133,7 +133,8 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     is_valid_packet(i)                         := ((buffer_deq_data(i) =/= 0.U) & (buffer_inst_type(i) =/= 0.U))
   }
 
-  val t_buffer                                  = RegInit(VecInit(Seq.fill(params.core_width)(0.U(buffer_width.W))))
+  val t_buffer                                  = RegInit(VecInit(Seq.fill(params.core_width)(0.U(params.packet_size.W))))
+  val t_inst_type                               = RegInit(VecInit(Seq.fill(params.core_width)(0.U(5.W))))
   val is_valid_t_buffer                         = WireInit(VecInit(Seq.fill(params.core_width)(0.U(1.W))))
   val t_buffer_inst_type                        = WireInit(VecInit(Seq.fill(params.core_width)(0.U(5.W))))
   val t_buffer_packet                           = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.packet_size.W))))
@@ -141,9 +142,10 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val load_t_buffer                             = WireInit(0.U(1.W))
   for (i <- 0 to params.core_width - 1) {
     t_buffer(i)                                := Mux(load_t_buffer === 1.U, buffer_packet(i), t_buffer(i))
+    t_inst_type(i)                             := Mux(load_t_buffer === 1.U, buffer_inst_type(i), t_inst_type(i))
     is_valid_t_buffer(i)                       := (t_buffer(i) =/= 0.U)
-    t_buffer_inst_type(i)                      := t_buffer(i)(buffer_width - 1, params.packet_size)
-    t_buffer_packet(i)                         := t_buffer(i)(params.packet_size - 1, 0)
+    t_buffer_inst_type(i)                      := t_inst_type(i)
+    t_buffer_packet(i)                         := t_buffer(i)
   }
   buffer_deq_valid                             := load_t_buffer
 
@@ -154,6 +156,10 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val fsm_second_nxt_state                      = WireInit(fsm_reset)
   val fsm_third_nxt_state                       = WireInit(fsm_reset)
   val fsm_fourth_nxt_state                      = WireInit(fsm_reset)
+  val load_t_buffer_first_state                 = WireInit(0.U(1.W))
+  val load_t_buffer_second_state                = WireInit(0.U(1.W))
+  val load_t_buffer_third_state                 = WireInit(0.U(1.W))
+  val load_t_buffer_fourth_state                = WireInit(0.U(1.W))
 
   switch (fsm_state) {
     is (fsm_reset){
@@ -173,7 +179,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         packet                                 := t_buffer_packet(0)
         inst_type                              := t_buffer_inst_type(0)
         fsm_state                              := fsm_first_nxt_state
-        load_t_buffer                          := true.B
+        load_t_buffer                          := load_t_buffer_first_state
       }
     }
 
@@ -187,7 +193,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         packet                                 := t_buffer_packet(1)
         inst_type                              := t_buffer_inst_type(1)
         fsm_state                              := fsm_second_nxt_state
-        load_t_buffer                          := true.B
+        load_t_buffer                          := load_t_buffer_second_state
       }
     }
 
@@ -201,7 +207,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         packet                                 := t_buffer_packet(2)
         inst_type                              := t_buffer_inst_type(2)
         fsm_state                              := fsm_third_nxt_state
-        load_t_buffer                          := true.B
+        load_t_buffer                          := load_t_buffer_third_state
       }
     }
 
@@ -215,7 +221,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
         packet                                 := t_buffer_packet(3)
         inst_type                              := t_buffer_inst_type(3)
         fsm_state                              := fsm_fourth_nxt_state
-        load_t_buffer                          := true.B
+        load_t_buffer                          := load_t_buffer_fourth_state
       }
     }
   }
@@ -236,24 +242,29 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
                                                     Array((is_valid_t_buffer(1) =/= 0.U)  -> fsm_send_second,
                                                           ((is_valid_t_buffer(1) === 0.U) && (is_valid_t_buffer(2) =/= 0.U))  -> fsm_send_third,
                                                           ((is_valid_t_buffer(1) === 0.U) && (is_valid_t_buffer(2) === 0.U) && (is_valid_t_buffer(3) =/= 0.U))  -> fsm_send_fourth,
-                                                          ((is_valid_t_buffer(1) === 0.U) && (is_valid_t_buffer(2) === 0.U) && (is_valid_t_buffer(3) === 0.U)) -> fsm_reset_nxt_state,
+                                                          ((is_valid_t_buffer(1) === 0.U) && (is_valid_t_buffer(2) === 0.U) && (is_valid_t_buffer(3) === 0.U)) -> Mux((!buffer_empty(0)), fsm_reset_nxt_state, fsm_reset)
                                                           )
                                                           )
 
   fsm_second_nxt_state                         := MuxCase(fsm_send_second, 
                                                     Array((is_valid_t_buffer(2) =/= 0.U)  -> fsm_send_third,
                                                           ((is_valid_t_buffer(2) === 0.U) && (is_valid_t_buffer(3) =/= 0.U))  -> fsm_send_fourth,
-                                                          ((is_valid_t_buffer(2) === 0.U) && (is_valid_t_buffer(3) === 0.U)) -> fsm_reset_nxt_state,
+                                                          ((is_valid_t_buffer(2) === 0.U) && (is_valid_t_buffer(3) === 0.U)) -> Mux((!buffer_empty(0)), fsm_reset_nxt_state, fsm_reset)
                                                           )
                                                           )
 
   fsm_third_nxt_state                         := MuxCase(fsm_send_third, 
                                                     Array((is_valid_t_buffer(3) =/= 0.U)  -> fsm_send_fourth,
-                                                          (is_valid_t_buffer(3) === 0.U) -> fsm_reset_nxt_state,
+                                                          (is_valid_t_buffer(3) === 0.U) -> Mux((!buffer_empty(0)), fsm_reset_nxt_state, fsm_reset)
                                                           )
                                                           )
 
-  fsm_fourth_nxt_state                        := fsm_reset_nxt_state
+  fsm_fourth_nxt_state                        := Mux((!buffer_empty(0)), fsm_reset_nxt_state, fsm_reset)
+
+  load_t_buffer_first_state                   := Mux((is_valid_t_buffer(1) === 0.U) && (is_valid_t_buffer(2) === 0.U) && (is_valid_t_buffer(3) === 0.U) && (!buffer_empty(0)), 1.U, 0.U)
+  load_t_buffer_second_state                  := Mux((is_valid_t_buffer(2) === 0.U) && (is_valid_t_buffer(3) === 0.U) && (!buffer_empty(0)), 1.U, 0.U)
+  load_t_buffer_third_state                   := Mux((is_valid_t_buffer(3) === 0.U) && (!buffer_empty(0)), 1.U, 0.U) 
+  load_t_buffer_fourth_state                  := Mux((!buffer_empty(0)), 1.U, 0.U)
 
   // Outputs
   io.ght_ft_inst_index                        := inst_type
