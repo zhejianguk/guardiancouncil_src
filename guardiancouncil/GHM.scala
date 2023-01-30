@@ -51,7 +51,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     val cdc_busy                                   = WireInit (VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
     val cdc_empty                                  = WireInit (VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
 
-    val u_cdc                                      = Seq.fill(params.number_of_little_cores) {Module(new GH_CDCH2LFIFO_HandShake(GH_CDCH2L_Params (0, params.width_GH_packet, 30)))}
+    val u_cdc                                      = Seq.fill(params.number_of_little_cores) {Module(new GH_CDCH2LFIFO_HandShake(GH_CDCH2L_Params (0, params.width_GH_packet, 20)))}
 
     packet_dest                                   := io.ghm_packet_dest
 
@@ -69,25 +69,24 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
 
     
     var warning                                    = WireInit(0.U(1.W))
-    var complete                                   = WireInit(1.U(1.W))
-    var release                                    = WireInit(1.U(1.W))
 
     val num_of_activated_cores                     = io.ghm_status_in(30, 23)
-    val if_sys_initalised_reg                      = RegInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(1.W))))
+    val ghe_event_reg                              = RegInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(3.W))))
+    val ghe_event                                  = WireInit(0.U(3.W))
     val initalised                                 = WireInit(0.U(1.W))
 
-    initalised                                    := if_sys_initalised_reg(num_of_activated_cores-1.U)
-    val u_and_gates                                = Seq.fill(params.number_of_little_cores) {Module(new GH_ANDGATE(ANDGATEParams (1, params.number_of_little_cores)))}
+    ghe_event                                     := ghe_event_reg(num_of_activated_cores-1.U)
+    val u_and_gates                                = Seq.fill(params.number_of_little_cores) {Module(new GH_ANDGATE(ANDGATEParams (3, params.number_of_little_cores)))}
 
     for (i <- 0 to params.number_of_little_cores - 1){
       for (j <- 0 to params.number_of_little_cores - 1){
         if (j > i){
-          u_and_gates(i).io.in(j)                  := 1.U
+          u_and_gates(i).io.in(j)                  := 7.U // 3'b111
         } else {
-          u_and_gates(i).io.in(j)                  := io.ghe_event_in(j)(3)
+          u_and_gates(i).io.in(j)                  := io.ghe_event_in(j)(3,1)
         }
       }
-      if_sys_initalised_reg(i)                     := u_and_gates(i).io.out
+      ghe_event_reg(i)                             := u_and_gates(i).io.out
     }
 
 
@@ -119,8 +118,6 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
 
     for(i <- 0 to params.number_of_little_cores - 1) {
       warning                                     = warning | cdc_busy(i)
-      complete                                    = complete & io.ghe_event_in(i)(1)
-      release                                     = release & io.ghe_event_in(i)(2)
     }
 
     when (io.ghm_packet_dest =/= 0.U) {
@@ -128,7 +125,7 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     }
 
     io.bigcore_hang                              := warning
-    io.bigcore_comp                              := Cat(initalised, release, complete)
+    io.bigcore_comp                              := ghe_event
 
     io.debug_gcounter                            := debug_gcounter
   }
