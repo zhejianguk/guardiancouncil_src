@@ -55,7 +55,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // Software Funcs
     val doCheck                 = (cmd.fire && (funct === 0x00.U))
-    val doEvent                 = (cmd.fire && (funct === 0x01.U))
+    val doEvent                 = (cmd.fire && ((funct === 0x40.U) || (funct === 0x41.U) || (funct === 0x42.U) || (funct === 0x43.U)))
     val doCheckBigStatus        = (cmd.fire && (funct === 0x07.U))
     val doTop_FirstHalf         = (cmd.fire && (funct === 0x0A.U) && !channel_empty)
     val doPop_FirstHalf         = (cmd.fire && (funct === 0x0B.U) && !channel_empty)
@@ -67,14 +67,17 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doRefreshSch            = (cmd.fire && (funct === 0x21.U))
     val doDebug_ECounter        = (cmd.fire && (funct === 0x22.U))
     val doDebug_GCounter        = (cmd.fire && (funct === 0x23.U))
-    val doInitialised           = (cmd.fire && (funct === 0x24.U))
     val doCheckFIFOUsage        = (cmd.fire && (funct === 0x25.U))
     val doCheckFIFOCounter      = (cmd.fire && (funct === 0x26.U))
     val doCheckFIFODCounter     = (cmd.fire && (funct === 0x27.U))
+    val doFIFOCache0            = (cmd.fire && (funct === 0x28.U))
+    val doFIFOCache1            = (cmd.fire && (funct === 0x29.U))
+    val doInitialised           = (cmd.fire && ((funct === 0x50.U) || (funct === 0x51.U)))
+
 
     // For big core
     val doBigCheckComp          = (cmd.fire && (funct === 0x6.U))
-    val doMask                  = (cmd.fire && (funct === 0x6.U) && (rs2_val === 1.U))
+    val doMask                  = (cmd.fire && ((funct === 0x30.U) || (funct === 0x31.U) || (funct === 0x32.U) || (funct === 0x33.U) || (funct === 0x34.U)))
     val doPID_Cfg               = (cmd.fire && (funct === 0x16.U))
     val doGHT_Cfg               = (cmd.fire && (funct === 0x6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
     val doGHTBufferCheck        = (cmd.fire && (funct === 0x8.U))
@@ -128,6 +131,13 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val zeros_20bits            = WireInit(0.U(20.W))
     val zeros_1bit              = WireInit(0.U(1.W))
 
+    val fifo_cache              = RegInit(VecInit(Seq.fill(2)(0.U(64.W))))
+
+    when (doPull) {
+      fifo_cache(0)            := channel_deq_data(127,64)
+      fifo_cache(1)            := fifo_cache(0)
+    }
+
     rd_val                     := MuxCase(0.U, 
                                     Array(doCheck             -> Cat(zeros_channel_status,    channel_status_wire), 
                                           doTop_FirstHalf     -> channel_deq_data(127,64),
@@ -148,15 +158,18 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doDebug_GCounter    -> io.debug_gcounter,
                                           doCheckFIFOUsage    -> u_channel.io.num_content,
                                           doCheckFIFOCounter  -> u_channel.io.debug_fcounter,
-                                          doCheckFIFODCounter -> u_channel.io.debug_fdcounter
+                                          doCheckFIFODCounter -> u_channel.io.debug_fdcounter,
+                                          doFIFOCache0        -> fifo_cache(0),
+                                          doFIFOCache1        -> fifo_cache(1)
                                           )
                                           )
+                                          
     when (doEvent) {
-      ghe_event_reg            := rs1_val(1,0)
+      ghe_event_reg            := (funct & 0x0F.U);
     }
 
     when (doInitialised){
-      ghe_initialised_reg      := rs1_val(0)
+      ghe_initialised_reg      := (funct & 0x0F.U);
     }
 
     when (channel_nearfull) {
@@ -187,7 +200,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     // 30 - 23: number of activated cores
     // Registers 
     when (doMask) {
-      ght_status_reg           := rs1_val
+      ght_status_reg           := (funct & 0x0F.U);
     }
 
     when (doSetActivatedCheckers) {
