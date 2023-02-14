@@ -84,8 +84,9 @@ class GH_CDCHS (val params: GH_CDCH2L_Params) extends Module with HasGH_CDCH2L_I
 class GH_CDCH2LFIFO_HandShake (val params: GH_CDCH2L_Params) extends Module with HasGH_CDCH2L_IO
 {
   if (params.clkdiv_ratio == 1){
-    io.cdc_data_out                             := io.cdc_data_in
-    io.cdc_busy                                 := 0.U
+    io.cdc_data_out                             := Mux((io.cdc_push === 1.U), io.cdc_data_in, 0.U)
+    io.cdc_busy                                 := io.cdc_slave_busy
+    io.cdc_empty                                := (io.cdc_data_in === 0.U)
   } else {
     val cdc_channel                              = Module(new GH_FIFO(FIFOParams (params.data_width, params.fifo_depth)))
     val cdc_channel_enq_valid                    = WireInit(false.B)
