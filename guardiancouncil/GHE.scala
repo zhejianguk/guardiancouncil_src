@@ -139,7 +139,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     }
 
     rd_val                     := MuxCase(0.U, 
-                                    Array(doCheck             -> Cat(zeros_channel_status,    channel_status_wire), 
+                                    Array(doCheck             -> Cat(zeros_channel_status, channel_status_wire), 
                                           doTop_FirstHalf     -> channel_deq_data(127,64),
                                           doPop_FirstHalf     -> channel_deq_data(127,64),
                                           doTop_SecondHalf    -> channel_deq_data(63,0),
