@@ -60,8 +60,8 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
   val dp_ldst_reg                               = RegInit(0.U(params.xlen.W))
   val dp_jump_wire                              = WireInit(0.U(params.xlen.W))
   val pc_reg                                    = RegInit(0.U(32.W))
-  val inst_ret                                  = ((inst_reg(6,0) === 0x67.U) && (inst_reg(11,7) === 0x0.U))
-  val inst_ret_rvc                              = ((inst_reg(6,0) === 0x2.U) && (inst_reg(15) === 0x1.U) && (inst_reg(13, 11) === 0x0.U))
+  val inst_ret                                  = ((inst_reg(6,0) === 0x67.U) && (inst_reg(11,7) === 0x0.U), && (inst_reg(19,15) === 0x01.U))
+  val inst_ret_rvc                              = ((inst_reg(6,0) === 0x2.U) && (inst_reg(11,7) === 0x7.U) && (inst_reg(14,12) === 0x0.U) && (inst_reg(15) === 0x1.U))
 
 
   inst                                         := Mux((io.ght_ft_newcommit_in === true.B), io.ght_ft_inst_in, 0x0.U)
@@ -114,6 +114,23 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
 
   dp_jump_wire                                 := Mux(inst_ret_delay|inst_ret_rvc_delay, dp_ldst_reg, io.ght_prfs_rd)
 
+  val i_opcode                                  = inst_reg_delay(6,0);
+  val i_rd                                      = inst_reg_delay(11,7);
+  val i_func                                    = inst_reg_delay(14,12);
+  val i_rs1                                     = inst_reg_delay(19,15);
+
+  val jump_type                                 = WireInit(0.U(2.W))
+
+  jump_type                                    := MuxCase(0.U,
+                                                    Array(((i_opcode === 0x6F.U) && (i_rd === 0x01.U)) -> 1.U,
+                                                          ((i_opcode === 0x67.U) && (i_rd === 0x01.U)) -> 1.U,
+                                                          ((i_opcode === 0x02.U) && (i_rd =/= 0x00.U) && (i_func === 0x01.U) && ((i_rs1&1.U) === 0x01.U)) -> 1.U,
+                                                          ((i_opcode === 0x67.U) && (i_rd === 0x00.U) && (i_rs1 === 0x01.U)) -> 2.U,
+                                                          ((i_opcode === 0x02.U) && (i_rd === 0x01.U) && (i_func === 0x0.U) && ((i_rs1&1.U) === 0x01.U)) -> 2.U
+                                                         )
+                                                         )
+
+
 
 
   io.ght_prfs_forward_ldq                      := MuxCase(0.U, 
@@ -147,7 +164,7 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
                                                     Array((dp_sel_reg === 0.U) -> 0.U,
                                                           (dp_sel_reg === 2.U) -> Cat(pc_reg_delay, inst_reg_delay, dp_ldst_reg),
                                                           (dp_sel_reg === 3.U) -> Cat(pc_reg_delay, inst_reg_delay, dp_ldst_reg),
-                                                          (dp_sel_reg === 1.U) -> Cat(pc_reg_delay, inst_reg_delay, dp_jump_wire)
+                                                          (dp_sel_reg === 1.U) -> Cat(pc_reg_delay, inst_reg_delay, Cat(dp_jump_wire(61,0), jump_type))
                                                           )
                                                           )
   io.ght_ft_inst_index                         := inst_index_reg
