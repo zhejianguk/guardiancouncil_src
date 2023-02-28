@@ -60,7 +60,7 @@ class GHT_FILTER_PRFS (val params: GHT_FILTER_PRFS_Params) extends Module with H
   val dp_ldst_reg                               = RegInit(0.U(params.xlen.W))
   val dp_jump_wire                              = WireInit(0.U(params.xlen.W))
   val pc_reg                                    = RegInit(0.U(32.W))
-  val inst_ret                                  = ((inst_reg(6,0) === 0x67.U) && (inst_reg(11,7) === 0x0.U), && (inst_reg(19,15) === 0x01.U))
+  val inst_ret                                  = ((inst_reg(6,0) === 0x67.U) && (inst_reg(11,7) === 0x0.U) && (inst_reg(19,15) === 0x01.U))
   val inst_ret_rvc                              = ((inst_reg(6,0) === 0x2.U) && (inst_reg(11,7) === 0x7.U) && (inst_reg(14,12) === 0x0.U) && (inst_reg(15) === 0x1.U))
 
 
