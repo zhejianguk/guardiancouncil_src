@@ -16,6 +16,7 @@ class FIFOIO(params: FIFOParams) extends Bundle {
   val deq_ready= Input(Bool())
   val empty = Output(Bool())
   val deq_bits = Output(UInt(params.width.W))
+  val status_fiveslots = Output(UInt(1.W))
   val status_threeslots = Output(UInt(1.W))
   val status_twoslots = Output(UInt(1.W))
   val num_content = Output(UInt(log2Ceil(params.depth).W))
@@ -83,6 +84,10 @@ class GH_FIFO(val params: FIFOParams) extends Module with HasFIFOIO {
     debug_fdcounter            := debug_fdcounter + 1.U
   }
   
+  io.status_fiveslots          := Mux(num_contentReg >= ((params.depth).U - 5.U),
+                                      1.U, 
+                                      0.U)
+
   io.status_threeslots         := Mux(num_contentReg >= ((params.depth).U - 3.U),
                                       1.U, 
                                       0.U)
