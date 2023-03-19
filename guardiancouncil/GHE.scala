@@ -77,7 +77,9 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     // For big core
     val doBigCheckComp          = (cmd.fire && (funct === 0x6.U))
-    val doMask                  = (cmd.fire && ((funct === 0x30.U) || (funct === 0x31.U) || (funct === 0x32.U) || (funct === 0x33.U) || (funct === 0x34.U)))
+    val doMask                  = (cmd.fire && ((funct === 0x30.U) || (funct === 0x31.U) || (funct === 0x32.U) || (funct === 0x33.U) || (funct === 0x34.U) || (funct === 0x35.U) || (funct === 0x36.U) || (funct === 0x37.U) || (funct === 0x38.U)))
+    val doCritical              = (cmd.fire && (funct === 0x39.U))
+    val doCheckCritial          = (cmd.fire && (funct === 0x49.U))
     val doPID_Cfg               = (cmd.fire && (funct === 0x16.U))
     val doGHT_Cfg               = (cmd.fire && (funct === 0x6.U) && ((rs2_val === 2.U) || (rs2_val === 3.U) || (rs2_val === 4.U)))
     val doGHTBufferCheck        = (cmd.fire && (funct === 0x8.U))
@@ -100,6 +102,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val ghe_initialised_reg     = RegInit(0x0.U(1.W))
 
     val ght_status_reg          = RegInit(0.U(32.W))
+    val ght_critial_reg         = RegInit(0.U(2.W))
     val ght_monitor_satp_ppn    = RegInit(0.U(44.W))
     val ght_monitor_sys_mode    = RegInit(0.U(2.W))
     val has_monitor_target      = RegInit(0.U(1.W))
@@ -160,7 +163,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doCheckFIFOCounter  -> u_channel.io.debug_fcounter,
                                           doCheckFIFODCounter -> u_channel.io.debug_fdcounter,
                                           doFIFOCache0        -> fifo_cache(0),
-                                          doFIFOCache1        -> fifo_cache(1)
+                                          doFIFOCache1        -> fifo_cache(1),
+                                          doCheckCritial      -> Cat(zeros_62bits, ght_critial_reg(1,0))
                                           )
                                           )
                                           
@@ -203,6 +207,11 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
       ght_status_reg           := (funct & 0x0F.U);
     }
 
+    when (doCritical) {
+      ght_critial_reg          := rs1_val(1,0)
+    }
+
+
     when (doSetActivatedCheckers) {
       num_activated_cores      := rs1_val
     }
@@ -234,7 +243,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     io.ght_status_out          := Cat(0.U, num_activated_cores, ght_status_reg(22,0))
 
     io.agg_packet_out          := Mux(doPushAgg, Cat(rs1_val, rs2_val), 0.U);
-    io.agg_core_status         := Cat(u_channel.io.status_fiveslots, (channel_empty & (ghe_packet_in === 0.U)))
+    io.agg_core_status         := Cat(u_channel.io.status_threeslots, (channel_empty & (ghe_packet_in === 0.U)))
     io.ght_sch_dorefresh       := Mux(doRefreshSch, rs1_val(31, 0), 0.U)
     io.ght_sch_na              := channel_sch_na
 }
