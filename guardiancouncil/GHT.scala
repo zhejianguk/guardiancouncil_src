@@ -49,6 +49,11 @@ class GHT_IO (params: GHTParams) extends Bundle {
   val ght_filters_empty                         = Output(UInt(1.W))
   val debug_mcounter                            = Output(UInt(64.W))
   val debug_icounter                            = Output(UInt(64.W))
+  val debug_bp_reset                            = Input(UInt(1.W))
+  val debug_bp_in                               = Input(UInt(2.W))
+  val debug_bp_checker                          = Output(UInt(64.W))
+  val debug_bp_cdc                              = Output(UInt(64.W))
+  val debug_bp_filter                           = Output(UInt(64.W))
 }
 
 trait HasGHT_IO extends BaseModule {
@@ -229,4 +234,42 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
   
   io.debug_mcounter                             := debug_mcounter
   io.debug_icounter                             := debug_icounter
+
+
+  val debug_bp_checker                           = RegInit(0.U(64.W))
+  val debug_bp_cdc                               = RegInit(0.U(64.W))
+  val debug_bp_filter                            = RegInit(0.U(64.W))
+  when (io.debug_bp_reset === 1.U) {
+    debug_bp_checker                            := 0.U
+  } .otherwise {
+    when ((u_ght_filters.io.core_hang_up === 1.U) && (io.debug_bp_in(0) === 1.U)){
+      debug_bp_checker                          := debug_bp_checker + 1.U
+    } .otherwise {
+      debug_bp_checker                          := debug_bp_checker
+    }
+  }
+
+  when (io.debug_bp_reset === 1.U) {
+    debug_bp_cdc                                := 0.U
+  } .otherwise {
+    when ((u_ght_filters.io.core_hang_up === 1.U) && (io.debug_bp_in === 2.U)){
+      debug_bp_cdc                              := debug_bp_cdc + 1.U
+    } .otherwise {
+      debug_bp_cdc                              := debug_bp_cdc
+    }
+  }
+
+  when (io.debug_bp_reset === 1.U) {
+    debug_bp_filter                             := 0.U
+  } .otherwise {
+    when ((u_ght_filters.io.core_hang_up === 1.U) && (io.debug_bp_in === 0.U)){
+      debug_bp_filter                           := debug_bp_filter + 1.U
+    } .otherwise {
+      debug_bp_filter                           := debug_bp_filter
+    }
+  }
+
+  io.debug_bp_checker                           := debug_bp_checker
+  io.debug_bp_cdc                               := debug_bp_cdc
+  io.debug_bp_filter                            := debug_bp_filter
 }

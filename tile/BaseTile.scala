@@ -252,6 +252,7 @@ abstract class BaseTile private (val crossing: ClockCrossingType, q: Parameters)
   println("#### Jessica #### Generating GHE **Nodes** on the tile, HartID:", tileParams.hartId, "...!!")
   val bigcore_hang_in_SKNode      = BundleBridgeSink[UInt](Some(() => UInt(1.W)))
   val bigcore_comp_in_SKNode      = BundleBridgeSink[UInt](Some(() => UInt(3.W)))
+  val debug_bp_in_SKNode          = BundleBridgeSink[UInt](Some(() => UInt(2.W)))
 
   val agg_packet_out_SRNode       = BundleBridgeSource[UInt](Some(() => UInt(128.W)))
   val agg_buffer_full_in_SKNode   = BundleBridgeSink[UInt](Some(() => UInt(1.W)))

@@ -54,6 +54,7 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val ght_status_out = Output(UInt(32.W))
   val ght_cfg_out = Output(UInt(32.W))
   val ght_cfg_valid = Output(UInt(1.W))
+  val debug_bp_reset = Output(UInt(1.W))
 
   val agg_packet_out = Output(UInt(128.W))
   val agg_buffer_full = Input(UInt(1.W))
@@ -70,6 +71,10 @@ class RoCCCoreIO(implicit p: Parameters) extends CoreBundle()(p) {
   val debug_mcounter = Input(UInt(64.W))
   val debug_icounter = Input(UInt(64.W))
   val debug_gcounter = Input(UInt(64.W))
+
+  val debug_bp_checker = Input(UInt(64.W))
+  val debug_bp_cdc = Input(UInt(64.W))
+  val debug_bp_filter = Input(UInt(64.W))
   //===== GuardianCouncil Function: End   ====//
 }
 
@@ -128,6 +133,7 @@ trait HasLazyRoCCModule extends CanHavePTWModule
       cmdRouter.io.ghe_event_in := rocc.module.io.ghe_event_out
       cmdRouter.io.ght_cfg_in := rocc.module.io.ght_cfg_out
       cmdRouter.io.ght_cfg_valid_in := rocc.module.io.ght_cfg_valid
+      cmdRouter.io.debug_bp_reset_in := rocc.module.io.debug_bp_reset
 
       cmdRouter.io.agg_packet_in := rocc.module.io.agg_packet_out
       rocc.module.io.agg_buffer_full := cmdRouter.io.agg_buffer_full
@@ -464,6 +470,9 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val ght_cfg_valid = Output(UInt(1.W))
     val ght_cfg_valid_in = Input(UInt(1.W))
 
+    val debug_bp_reset = Output(UInt(1.W))
+    val debug_bp_reset_in = Input(UInt(1.W))
+
     val agg_packet_out = Output(UInt(128.W))
     val agg_packet_in  = Input(UInt(128.W))
     val agg_buffer_full = Input(UInt(1.W))
@@ -498,6 +507,7 @@ class RoccCommandRouter(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   io.ght_status_out := io.ght_status_in
   io.ght_cfg_out := io.ght_cfg_in
   io.ght_cfg_valid := io.ght_cfg_valid_in
+  io.debug_bp_reset := io.debug_bp_reset_in
 
   io.agg_packet_out := io.agg_packet_in
   io.agg_core_status_out := io.agg_core_status_in
@@ -531,6 +541,10 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val ght_cfg_valid = Output(UInt(1.W))
     val ght_cfg_valid_in = Input(UInt(1.W))
 
+    val debug_bp_reset = Output(UInt(1.W))
+    val debug_bp_reset_in = Input(UInt(1.W))
+    
+
     val agg_packet_out = Output(UInt(128.W))
     val agg_packet_in  = Input(UInt(128.W))
     val agg_buffer_full = Input(UInt(1.W))
@@ -554,6 +568,10 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
     val debug_mcounter  = Input(UInt(64.W))
     val debug_icounter  = Input(UInt(64.W))
     val debug_gcounter  = Input(UInt(64.W))
+
+    val debug_bp_checker = Input(UInt(64.W))
+    val debug_bp_cdc = Input(UInt(64.W))
+    val debug_bp_filter = Input(UInt(64.W))
     //===== GuardianCouncil Function: End   ====//
   }
 
@@ -572,6 +590,7 @@ class RoccCommandRouterBoom(opcodes: Seq[OpcodeSet])(implicit p: Parameters)
   io.ght_status_out := io.ght_status_in
   io.ght_cfg_out := io.ght_cfg_in
   io.ght_cfg_valid := io.ght_cfg_valid_in
+  io.debug_bp_reset := io.debug_bp_reset_in
 
   io.agg_packet_out := io.agg_packet_in
   io.agg_core_status_out := io.agg_core_status_in

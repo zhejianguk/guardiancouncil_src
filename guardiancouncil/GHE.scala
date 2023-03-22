@@ -91,6 +91,10 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doDebug_ICounter        = (cmd.fire && (funct === 0x1a.U))
     val doBigCheckIni           = (cmd.fire && (funct === 0x1b.U))
     val doSetActivatedCheckers  = (cmd.fire && (funct === 0x1c.U))
+    val doDebug_bp_checker      = (cmd.fire && (funct === 0x1d.U))
+    val doDebug_bp_cdc          = (cmd.fire && (funct === 0x1e.U))
+    val doDebug_bp_filter       = (cmd.fire && (funct === 0x1f.U))
+    val doDebug_Reset_bp        = (cmd.fire && (funct === 0x2d.U))
 
     val ghe_packet_in           = RegInit(0x0.U((2*xLen).W))
     ghe_packet_in              := io.ghe_packet_in
@@ -159,6 +163,9 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doDebug_ICounter    -> io.debug_icounter,
                                           doDebug_ECounter    -> ECounter,
                                           doDebug_GCounter    -> io.debug_gcounter,
+                                          doDebug_bp_checker  -> io.debug_bp_checker,
+                                          doDebug_bp_cdc      -> io.debug_bp_cdc,
+                                          doDebug_bp_filter   -> io.debug_bp_filter,
                                           doCheckFIFOUsage    -> u_channel.io.num_content,
                                           doCheckFIFOCounter  -> u_channel.io.debug_fcounter,
                                           doCheckFIFODCounter -> u_channel.io.debug_fdcounter,
@@ -239,6 +246,7 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
 
     io.ght_cfg_out             := Mux(doGHT_Cfg, rs1_val(31,0), 0.U) 
     io.ght_cfg_valid           := Mux(doGHT_Cfg, 1.U, 0.U)
+    io.debug_bp_reset          := Mux(doDebug_Reset_bp, 1.U, 0.U)
     io.ght_mask_out            := ~(ght_status_reg(0))
     io.ght_status_out          := Cat(0.U, num_activated_cores, ght_status_reg(22,0))
 

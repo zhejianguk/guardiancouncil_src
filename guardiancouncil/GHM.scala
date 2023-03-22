@@ -27,6 +27,7 @@ class GHMIO(params: GHMParams) extends Bundle {
   val ghe_event_in                               = Input(Vec(params.number_of_little_cores, UInt(5.W)))
   val bigcore_hang                               = Output(UInt(1.W))
   val bigcore_comp                               = Output(UInt(3.W))
+  val debug_bp                                   = Output(UInt(2.W))
 
   val debug_gcounter                             = Output(UInt(64.W))
   val if_agg_free                                = Input(UInt(1.W))
@@ -128,6 +129,10 @@ class GHM (val params: GHMParams)(implicit p: Parameters) extends LazyModule
     io.bigcore_comp                              := ghe_event
 
     io.debug_gcounter                            := debug_gcounter
+
+    val debug_collecting_checker_status           = io.ghe_event_in.reduce(_|_)
+    val debug_backpressure_checkers               = debug_collecting_checker_status(0)
+    io.debug_bp                                  := Cat(warning, debug_backpressure_checkers) // [1]: CDC; [0]: Checker
   }
 }
 
@@ -142,6 +147,7 @@ object GHMCore {
     // Creating nodes for connections.
     val bigcore_hang_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(1.W)))
     val bigcore_comp_SRNode                        = BundleBridgeSource[UInt](Some(() => UInt(3.W)))
+    val debug_bp_SRNode                            = BundleBridgeSource[UInt](Some(() => UInt(2.W)))
     val ghm_ght_packet_in_SKNode                   = BundleBridgeSink[UInt](Some(() => UInt((params.width_GH_packet).W)))
     val ghm_ght_packet_dest_SKNode                 = BundleBridgeSink[UInt](Some(() => UInt(32.W)))
 
@@ -173,6 +179,7 @@ object GHMCore {
     }
     subsystem.tile_bigcore_comp_EPNode            := bigcore_comp_SRNode
     subsystem.tile_bigcore_hang_EPNode            := bigcore_hang_SRNode
+    subsystem.tile_debug_bp_EPNode                := debug_bp_SRNode
 
     val debug_gcounter_SRNode                      = BundleBridgeSource[UInt](Some(() => UInt(64.W)))
     subsystem.tile_debug_gcounter_EPNode          := debug_gcounter_SRNode
@@ -202,6 +209,7 @@ object GHMCore {
 
       bigcore_hang_SRNode.bundle                  := ghm.module.io.bigcore_hang
       bigcore_comp_SRNode.bundle                  := ghm.module.io.bigcore_comp
+      debug_bp_SRNode.bundle                      := ghm.module.io.debug_bp
       debug_gcounter_SRNode.bundle                := ghm.module.io.debug_gcounter
     }
     ghm
