@@ -140,7 +140,6 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   val is_valid_t_buffer                         = WireInit(VecInit(Seq.fill(params.core_width)(0.U(1.W))))
   val t_buffer_inst_type                        = WireInit(VecInit(Seq.fill(params.core_width)(0.U(5.W))))
   val t_buffer_packet                           = WireInit(VecInit(Seq.fill(params.core_width)(0.U(params.packet_size.W))))
-  val is_valid_t_packet                         = WireInit(VecInit(Seq.fill(params.core_width)(0.U(1.W))))
 
   val load_t_buffer                             = WireInit(0.U(1.W))
   for (i <- 0 to params.core_width - 1) {
@@ -149,8 +148,6 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     is_valid_t_buffer(i)                       := (t_buffer(i) =/= 0.U)
     t_buffer_inst_type(i)                      := t_inst_type(i)
     t_buffer_packet(i)                         := t_buffer(i)
-
-    is_valid_t_packet(i)                       := (buffer_packet(i) =/= 0.U)
   }
   buffer_deq_valid                             := load_t_buffer
 
@@ -206,7 +203,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     }
 
     is (fsm_send_first){
-      when ((io.ght_stall) || (s_delay_counter_reg =/= 0.U)) {
+      when (io.ght_stall) {
         packet                                 := 0.U
         inst_type                              := 0.U
         fsm_state                              := fsm_send_first
@@ -220,7 +217,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     }
 
     is (fsm_send_second){
-      when ((io.ght_stall) || (s_delay_counter_reg =/= 0.U)) {
+      when (io.ght_stall) {
         packet                                 := 0.U
         inst_type                              := 0.U
         fsm_state                              := fsm_send_second
@@ -234,7 +231,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     }
 
     is (fsm_send_third){
-      when ((io.ght_stall) || (s_delay_counter_reg =/= 0.U)) {
+      when (io.ght_stall) {
         packet                                 := 0.U
         inst_type                              := 0.U
         fsm_state                              := fsm_send_third
@@ -248,7 +245,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
     }
 
     is (fsm_send_fourth){
-      when ((io.ght_stall) || (s_delay_counter_reg =/= 0.U)) {
+      when (io.ght_stall) {
         packet                                 := 0.U
         inst_type                              := 0.U
         fsm_state                              := fsm_send_fourth
