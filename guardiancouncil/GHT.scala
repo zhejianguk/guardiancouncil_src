@@ -130,6 +130,20 @@ class GHT (val params: GHTParams) extends Module with HasGHT_IO
     }
   }
 
+  // Simulating 1/2-width event filter
+  val ght_cfg_in_ft_filter_width                 = WireInit(0.U(32.W))
+  val ght_cfg_valid_ft_filter_width              = WireInit(0.U(1.W))
+  ght_cfg_in_ft_filter_width                    := Mux((this.io.ght_cfg_in(3,0) === 5.U),
+                                                        this.io.ght_cfg_in, 0.U)
+  ght_cfg_valid_ft_filter_width                 := Mux((this.io.ght_cfg_in(3,0) === 5.U),
+                                                        this.io.ght_cfg_valid, 0.U)
+
+  val debug_filter_width_reg                     = RegInit(0.U(4.W))
+  when (ght_cfg_valid_ft_filter_width === 1.U) {
+    debug_filter_width_reg                      := ght_cfg_in_ft_filter_width(7,4)
+  }
+  u_ght_filters.io.debug_filter_width           := debug_filter_width_reg
+
  //==========================================================
   // Mapper
   //==========================================================

@@ -42,6 +42,7 @@ class GHT_FILTERS_PRFS_IO (params: GHT_FILTERS_PRFS_Params) extends Bundle {
   val ght_prfs_forward_prf                      = Output(Vec(params.core_width, Bool()))
 
   val ght_filters_empty                         = Output(UInt(1.W))
+  val debug_filter_width                        = Input(UInt(4.W))
 }
 
 
@@ -62,6 +63,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
 
   val u_ght_filters                             = Seq.fill(params.core_width) {Module(new GHT_FILTER_PRFS(GHT_FILTER_PRFS_Params(params.xlen, params.totaltypes_of_insts, params.packet_size, params.use_prfs)))}
   val u_buffer                                  = Seq.fill(params.core_width) {Module(new GH_FIFO(FIFOParams (buffer_width, 17)))}
+  val core_hang_up                              = u_buffer(params.core_width-1).io.status_threeslots
 
   // Connecting filters
   val filter_inst_index                         = WireInit(VecInit(Seq.fill(params.core_width)(0.U(5.W))))
@@ -152,23 +154,36 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   }
   buffer_deq_valid                             := load_t_buffer
 
-  val filter_width                              = 1
+  // Simulating 1/2-width event filter
+  /* Additional logic for filtering delay */
+  val filter_width                              = io.debug_filter_width
   val s_num_packets                             = WireInit(0.U(3.W))
-  val s_delay_counter                           = WireInit(0.U(2.W))
-  val s_delay_counter_reg                       = RegInit(0.U(2.W))
+  val s_not_enough_filter_width                 = WireInit(0.U(1.W))
+  val s_delay_counter                           = WireInit(0.U(3.W))
+  val s_delay_counter_reg                       =  RegInit(0.U(3.W))
   val zeros_2bits                               = WireInit(0.U(2.W))
 
-  s_num_packets                                := Cat(zeros_2bits, is_valid_t_packet(0))  + Cat(zeros_2bits, is_valid_t_packet(1)) + Cat(zeros_2bits, is_valid_t_packet(2)) + Cat(zeros_2bits, is_valid_t_packet(3))
-  s_delay_counter                              := Mux(s_num_packets > filter_width.U, s_num_packets - filter_width.U, 0.U)
+  s_num_packets                                := Cat(zeros_2bits, io.ght_ft_newcommit_in(0))  + Cat(zeros_2bits, io.ght_ft_newcommit_in(1)) + Cat(zeros_2bits, io.ght_ft_newcommit_in(2)) + Cat(zeros_2bits, io.ght_ft_newcommit_in(3))
+  s_not_enough_filter_width                    := Mux((s_num_packets > filter_width), 1.U, 0.U)
+  
+  s_delay_counter                              := MuxCase(0.U,
+                                                    Array(((s_not_enough_filter_width === 0.U) || (filter_width === 0.U)) -> 0.U,
+                                                          ((s_not_enough_filter_width === 1.U) && (filter_width === 1.U)) -> (s_num_packets - 1.U),
+                                                          ((s_not_enough_filter_width === 1.U) && (filter_width === 2.U)) -> 1.U
+                                                          )
+                                                          )
 
-  when (load_t_buffer === 1.U){
-    s_delay_counter_reg                        := s_delay_counter
+  when (s_not_enough_filter_width === 1.U) {
+    s_delay_counter_reg                        := s_delay_counter_reg + s_delay_counter
   } .otherwise {
-    when (!io.ght_stall){
-      s_delay_counter_reg                      := Mux(s_delay_counter_reg =/= 0.U, s_delay_counter_reg - 1.U, 0.U)
+    when (core_hang_up =/= 1.U) {
+      s_delay_counter_reg                      := Mux(s_delay_counter_reg =/= 0.U, (s_delay_counter_reg - 1.U), 0.U)
+    } .otherwise {
+      s_delay_counter_reg                      := s_delay_counter_reg
     }
   }
-                                                         
+
+  val filter_stall                              = Mux((s_delay_counter_reg =/= 0.U), 1.U, 0.U)
 
   val fsm_reset :: fsm_send_first :: fsm_send_second :: fsm_send_third :: fsm_send_fourth :: Nil = Enum(5)
   val fsm_state                                 = RegInit(fsm_reset)
@@ -290,7 +305,7 @@ class GHT_FILTERS_PRFS (val params: GHT_FILTERS_PRFS_Params) extends Module with
   // Outputs
   io.ght_ft_inst_index                        := inst_type
   io.packet_out                               := packet
-  io.core_hang_up                             := u_buffer(params.core_width-1).io.status_threeslots
+  io.core_hang_up                             := core_hang_up | filter_stall
   io.ght_buffer_status                        := Cat(buffer_full(params.core_width-1), buffer_empty.reduce(_&_))
   io.ght_filters_empty                        := buffer_empty.reduce(_&_)
 }
