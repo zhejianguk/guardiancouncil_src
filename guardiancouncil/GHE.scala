@@ -73,6 +73,9 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val doFIFOCache0            = (cmd.fire && (funct === 0x28.U))
     val doFIFOCache1            = (cmd.fire && (funct === 0x29.U))
     val doInitialised           = (cmd.fire && ((funct === 0x50.U) || (funct === 0x51.U)))
+    val doHA                    = (cmd.fire && (funct === 0x52.U))
+    val doCheckHA               = (cmd.fire && (funct === 0x53.U))
+    val ha_rslt                 = WireInit(0x0.U((xLen).W))
 
 
     // For big core
@@ -99,7 +102,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     val ghe_packet_in           = RegInit(0x0.U((2*xLen).W))
     ghe_packet_in              := io.ghe_packet_in
     val doPush                  = (ghe_packet_in =/= 0.U) && !channel_full
-    val doPull                  = doPop_FirstHalf || doPop_SecondHalf
+    val doHAPull                = WireInit(0.U(1.W))  
+    val doPull                  = doPop_FirstHalf || doPop_SecondHalf || (doHAPull === 1.U)
     val ghe_status_in           = io.ghe_status_in
     val ghe_status_reg          = RegInit(0x0.U(32.W))
     val ghe_event_reg           = RegInit(0x0.U(2.W))
@@ -171,7 +175,8 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
                                           doCheckFIFODCounter -> u_channel.io.debug_fdcounter,
                                           doFIFOCache0        -> fifo_cache(0),
                                           doFIFOCache1        -> fifo_cache(1),
-                                          doCheckCritial      -> Cat(zeros_62bits, ght_critial_reg(1,0))
+                                          doCheckCritial      -> Cat(zeros_62bits, ght_critial_reg(1,0)),
+                                          doCheckHA           -> ha_rslt
                                           )
                                           )
                                           
@@ -254,4 +259,19 @@ class GHEImp(outer: GHE)(implicit p: Parameters) extends LazyRoCCModuleImp(outer
     io.agg_core_status         := Cat(u_channel.io.status_threeslots, (channel_empty & (ghe_packet_in === 0.U)))
     io.ght_sch_dorefresh       := Mux(doRefreshSch, rs1_val(31, 0), 0.U)
     io.ght_sch_na              := channel_sch_na
+
+    val u_pmc                  = Module (new GHE_HAPMC(GHE_HAPMC_Params (xLen)))
+    val pmc_active_reg         = RegInit(0.U(1.W))
+    when (doHA){
+      pmc_active_reg          := rs1_val(0)
+    }
+
+    u_pmc.io.ghe_hapmc_active := pmc_active_reg
+    // Revist: below could be configured by the software
+    u_pmc.io.ghe_hapmc_hbound := 0x20000000.U
+    u_pmc.io.ghe_hapmc_lbound := 0x10000000.U
+    u_pmc.io.msgq_empty       := Mux(channel_empty === true.B, 1.U, 0.U)
+    u_pmc.io.msgq_data        := channel_deq_data(63,0)
+    doHAPull                  := u_pmc.io.msgq_pop
+    ha_rslt                   := u_pmc.io.ghe_hapmc_rslt
 }
