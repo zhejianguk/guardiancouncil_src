@@ -36,7 +36,7 @@ trait HasGHM_AGG_IO extends BaseModule {
 //==========================================================
 class GHT_AGG (val params: GHM_AGG_Params) extends Module with HasGHM_AGG_IO
 { 
-  val agg_buffer                                 = Seq.fill(params.number_of_little_cores) {Module(new GH_FIFO(FIFOParams (params.width_GH_packet, 17)))}
+  val agg_buffer                                 = Seq.fill(params.number_of_little_cores) {Module(new GH_FIFO(FIFOParams (params.width_GH_packet, 8)))}
   
   val agg_buffer_data                            = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(0.U(params.width_GH_packet.W))))
   val agg_buffer_empty                           = WireInit(VecInit(Seq.fill(params.number_of_little_cores)(false.B)))
